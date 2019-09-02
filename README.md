@@ -1,4 +1,4 @@
-#OpenSky processing Application
+# OpenSky processing Application
 
 Develop application using Scala programming language, SBT and Akka framework.
 Use Opensky as datasource, https://opensky-network.org/apidoc/
