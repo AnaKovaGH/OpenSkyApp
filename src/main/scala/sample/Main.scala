@@ -8,8 +8,8 @@ object Main extends App {
 
   val ingestingActor = actorSystem.actorOf(Props[IngestingActor], "IngestingActor")
   val transformingActor = actorSystem.actorOf(Props[TransformingActor], "TransformingActor")
-  val CalculatingActor = actorSystem.actorOf(Props[CalculatingActor], "CalculatingActor")
-  val SendingKafkaActor = actorSystem.actorOf(Props[SendingKafkaActor], "SendingKafkaActor")
+  val calculatingActor = actorSystem.actorOf(Props[CalculatingActor], "CalculatingActor")
+  val sendingKafkaActor = actorSystem.actorOf(Props[SendingKafkaActor], "SendingKafkaActor")
 
   actorSystem.terminate()
 }
