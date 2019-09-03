@@ -16,4 +16,3 @@ lazy val root = (project in file("."))
 
 libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.5.25"
 
-mainClass in (Compile, packageBin) := Some("Main")
