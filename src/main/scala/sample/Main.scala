@@ -11,5 +11,7 @@ object Main extends App {
   val calculatingActor = actorSystem.actorOf(Props[CalculatingActor], "CalculatingActor")
   val sendingKafkaActor = actorSystem.actorOf(Props[SendingKafkaActor], "SendingKafkaActor")
 
+  ingestingActor ! 10
+
   actorSystem.terminate()
 }
