@@ -32,6 +32,7 @@ class IngestingActor extends Actor {
       val inputStream = connection.getInputStream
       val content = io.Source.fromInputStream(inputStream).mkString
       if (inputStream != null) inputStream.close()
+      connection.disconnect()
       println(content)
       content
     }
