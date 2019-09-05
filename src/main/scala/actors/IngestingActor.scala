@@ -1,18 +1,27 @@
 package actors
 
 import akka.actor.Actor
+import com.typesafe.config.{Config, ConfigFactory}
 import javax.script.ScriptException
 
 
+
 class IngestingActor extends Actor {
+
+  val config: Config = ConfigFactory.load("OpenSky.conf")
+  val url: String = config.getString("osc.apiurl")
+  val connectTimeout: Int = config.getInt("osc.connectTimeout")
+  val readTimeout: Int = config.getInt("osc.readTimeout")
+  val requestMethod: String = config.getString("osc.requestMethod")
+
   override def receive: Receive = {
-    case _ => ingestData("https://opensky-network.org/api/states/all/")
+    case _ => ingestData(url)
   }
 
   def ingestData(url: String,
-          connectTimeout: Int = 5000,
-          readTimeout: Int = 5000,
-          requestMethod: String = "GET"): String =
+          connectTimeout: Int = connectTimeout,
+          readTimeout: Int = readTimeout,
+          requestMethod: String = requestMethod): String =
   {
     try {
       import java.net.{URL, HttpURLConnection}
@@ -23,6 +32,7 @@ class IngestingActor extends Actor {
       val inputStream = connection.getInputStream
       val content = io.Source.fromInputStream(inputStream).mkString
       if (inputStream != null) inputStream.close()
+      println(content)
       content
     }
     catch {
