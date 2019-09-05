@@ -12,7 +12,7 @@ class IngestingActor extends Actor {
   val url: String = config.getString("osc.apiurl")
   val connectTimeout: Int = config.getInt("osc.connectTimeout")
   val readTimeout: Int = config.getInt("osc.readTimeout")
-  val requestMethod: String = config.getString("osc.requestMethod")
+  val requestMethod: String = "GET"
 
   override def receive: Receive = {
     case _ => ingestData(url)
@@ -33,7 +33,6 @@ class IngestingActor extends Actor {
       val content = io.Source.fromInputStream(inputStream).mkString
       if (inputStream != null) inputStream.close()
       connection.disconnect()
-      println(content)
       content
     }
     catch {
