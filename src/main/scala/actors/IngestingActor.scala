@@ -5,29 +5,25 @@ import com.typesafe.config.{Config, ConfigFactory}
 import javax.script.ScriptException
 
 
-
 class IngestingActor extends Actor {
 
   val config: Config = ConfigFactory.load("OpenSky.conf")
-  val url: String = config.getString("osc.apiurl")
-  val connectTimeout: Int = config.getInt("osc.connectTimeout")
-  val readTimeout: Int = config.getInt("osc.readTimeout")
+  val url: String = config.getString("osc.api-url")
+  val connectTimeout:  Long = config.getMilliseconds("osc.connect-timeout")
+  val readTimeout:  Long = config.getMilliseconds("osc.read-timeout")
   val requestMethod: String = "GET"
 
   override def receive: Receive = {
     case _ => ingestData(url)
   }
 
-  def ingestData(url: String,
-          connectTimeout: Int = connectTimeout,
-          readTimeout: Int = readTimeout,
-          requestMethod: String = requestMethod): String =
+  def ingestData(url: String, connectTimeout:  Long = connectTimeout, readTimeout:  Long = readTimeout, requestMethod: String = requestMethod): String =
   {
     try {
       import java.net.{URL, HttpURLConnection}
       val connection = new URL(url).openConnection.asInstanceOf[HttpURLConnection]
-      connection.setConnectTimeout(connectTimeout)
-      connection.setReadTimeout(readTimeout)
+      connection.setConnectTimeout(connectTimeout.toInt)
+      connection.setReadTimeout(readTimeout.toInt)
       connection.setRequestMethod(requestMethod)
       val inputStream = connection.getInputStream
       val content = io.Source.fromInputStream(inputStream).mkString
