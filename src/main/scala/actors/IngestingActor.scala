@@ -1,11 +1,11 @@
 package actors
 
 
-import java.time.Duration
-
 import akka.actor.Actor
 import com.typesafe.config.{Config, ConfigFactory}
 
+import scala.concurrent.duration.Duration
+import scala.jdk.DurationConverters.JavaDurationOps
 import scala.util.control.NonFatal
 
 
@@ -13,8 +13,8 @@ class IngestingActor extends Actor {
 
   val config: Config = ConfigFactory.load("OpenSky.conf")
   val url: String = config.getString("osc.api-url")
-  val connectTimeout:  Duration = config.getDuration("osc.connect-timeout")
-  val readTimeout:  Duration = config.getDuration("osc.read-timeout")
+  val connectTimeout:  Duration = config.getDuration("osc.connect-timeout").toScala
+  val readTimeout:  Duration = config.getDuration("osc.read-timeout").toScala
   val requestMethod: String = "GET"
 
   override def receive: Receive = {
