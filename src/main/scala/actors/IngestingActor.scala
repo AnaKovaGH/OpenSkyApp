@@ -1,10 +1,12 @@
 package actors
 
+
 import java.time.Duration
 
 import akka.actor.Actor
 import com.typesafe.config.{Config, ConfigFactory}
-import javax.script.ScriptException
+
+import scala.util.control.NonFatal
 
 
 class IngestingActor extends Actor {
@@ -34,8 +36,7 @@ class IngestingActor extends Actor {
       content
     }
     catch {
-      case e: ScriptException => e.printStackTrace()
-      "Error"
+      case NonFatal(error)  => error.printStackTrace().toString
     }
   }
 
