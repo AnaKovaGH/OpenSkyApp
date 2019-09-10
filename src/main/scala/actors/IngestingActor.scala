@@ -1,9 +1,9 @@
 package actors
 
 
-import akka.actor.{Actor, ActorRef}
+import akka.actor.Actor
 import com.typesafe.config.{Config, ConfigFactory}
-import messages.{IngestMessage, IngestedDataMessage, StartMessage}
+import messages.{IngestMessage, IngestedDataMessage}
 
 import scala.concurrent.duration.Duration
 import scala.jdk.DurationConverters.JavaDurationOps

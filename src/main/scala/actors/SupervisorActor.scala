@@ -1,7 +1,7 @@
 package actors
 
 import akka.actor.{Actor, ActorRef, Props}
-import messages.{IngestMessage, IngestedDataMessage, StartMessage, TransformMessage}
+import messages.{IngestMessage, StartMessage}
 
 
 class SupervisorActor extends Actor {
@@ -10,9 +10,10 @@ class SupervisorActor extends Actor {
   val sendingKafkaActor: ActorRef = context.actorOf(Props[SendingKafkaActor])
   val transformingActor: ActorRef = context.actorOf(Props[TransformingActor])
 
+
+
   override def receive: Receive = {
     case StartMessage => ingestingActor ! IngestMessage
-    case IngestedDataMessage(ingestedData: String) => transformingActor ! TransformMessage(ingestedData)
     case _ => println("Unknown message. Supervisor.")
   }
 }
