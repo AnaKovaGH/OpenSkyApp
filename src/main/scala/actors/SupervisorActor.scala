@@ -1,7 +1,7 @@
 package actors
 
 import akka.actor.{Actor, ActorRef, Props}
-import messages.{IngestMessage, StartMessage}
+import messages.{IngestDataMessage, StartMessage}
 
 
 class SupervisorActor extends Actor {
@@ -13,7 +13,7 @@ class SupervisorActor extends Actor {
 
 
   override def receive: Receive = {
-    case StartMessage => ingestingActor ! IngestMessage
+    case StartMessage => ingestingActor ! IngestDataMessage
     case _ => println("Unknown message. Supervisor.")
   }
 }
