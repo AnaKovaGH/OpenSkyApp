@@ -3,7 +3,7 @@ package actors
 
 import akka.actor.{Actor, ActorRef}
 import com.typesafe.config.{Config, ConfigFactory}
-import messages.StartMessage
+import messages.{IngestMessage, IngestedDataMessage, StartMessage}
 
 import scala.concurrent.duration.Duration
 import scala.jdk.DurationConverters.JavaDurationOps
@@ -18,10 +18,10 @@ class IngestingActor extends Actor {
   val requestMethod: String = "GET"
 
   override def receive: Receive = {
-    case (StartMessage, receiver: ActorRef) =>
+    case IngestMessage =>
       val ingestedData: String = ingestData(url)
-      receiver ! ingestedData
-    case _ => println("Another message. Did not start ingesting data.")
+      sender ! IngestedDataMessage(ingestedData)
+    case _ => println("Unknown message. Did not start ingesting data. IngestingActor")
   }
 
   def ingestData(url: String, connectTimeout:  Duration = connectTimeout, readTimeout:  Duration = readTimeout, requestMethod: String = requestMethod): String =

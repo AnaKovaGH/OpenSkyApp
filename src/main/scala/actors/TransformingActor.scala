@@ -1,12 +1,18 @@
 package actors
 
 import akka.actor.Actor
-import messages.IngestedDataMessage
+import messages.{TransformMessage, TransformedDataMessage}
 
 
 class TransformingActor extends Actor {
   override def receive: Receive = {
-    case IngestedDataMessage => println("Done sending")
+    case TransformMessage(ingestedData) =>
+      val transformedData: String = transformDataToJSON(ingestedData)
+      sender ! TransformedDataMessage(transformedData)
     case _ => println("Transform")
+  }
+
+  def transformDataToJSON(ingestedData: String): String = {
+    "There will be transformation"
   }
 }
