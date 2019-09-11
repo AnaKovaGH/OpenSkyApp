@@ -1,19 +1,24 @@
 package actors
 
 import akka.actor.{Actor, ActorRef}
-import messages.{CalculateDataMessage, TransformDataToJSONMessage}
+import messages.{CalculateDataMessage, CompleteWork, TransformDataToJSONMessage}
+import io.circe._
+import io.circe.parser._
 
 
 class TransformingActor(calculatingActor: ActorRef) extends Actor {
   override def receive: Receive = {
     case TransformDataToJSONMessage(ingestedData) =>
-      val transformedData: String = transformDataToJSON(ingestedData)
-      calculatingActor ! CalculateDataMessage(transformedData)
+      val transformedData: Json = transformDataToJSON(ingestedData)
+      if (transformedData == null)
+        context.parent ! CompleteWork
+      else
+        calculatingActor ! CalculateDataMessage(transformedData)
     case _ => println("Unknown message. Did not start transforming data. TransformingActor.")
   }
 
-  def transformDataToJSON(ingestedData: String): String = {
-    println(ingestedData)
-    "There will be transformation"
+  def transformDataToJSON(ingestedData: String): Json = {
+    val jsonData = parse(ingestedData).getOrElse(Json.Null)
+    jsonData
   }
 }
