@@ -1,9 +1,14 @@
 package actors
 
-import akka.actor._
+import akka.actor.Actor
+import messages.{CompleteWork, SendDataToKafkaMessage}
 
-class SendingKafkaActor extends Actor {
+class SendingKafkaActor() extends Actor {
   override def receive: Receive = {
-    case _ => println("Send to Kafka")
+    case SendDataToKafkaMessage(calculatedData) => context.parent ! CompleteWork
+    case _ => println("Unknown message. Did not start sending data. SendingKafkaActor.")
+  }
+  def sendDataToKafka(data: String): String = {
+    "There will be sending"
   }
 }

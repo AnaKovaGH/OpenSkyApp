@@ -1,16 +1,16 @@
 package actors
 
 
-import akka.actor.Actor
+import akka.actor.{Actor, ActorRef}
 import com.typesafe.config.{Config, ConfigFactory}
+import messages.{IngestDataMessage, TransformDataToJSONMessage}
 
 import scala.concurrent.duration.Duration
 import scala.jdk.DurationConverters.JavaDurationOps
 import scala.util.control.NonFatal
 
 
-class IngestingActor extends Actor {
-
+class IngestingActor(transformingActor: ActorRef) extends Actor {
   val config: Config = ConfigFactory.load("OpenSky.conf")
   val url: String = config.getString("osc.api-url")
   val connectTimeout:  Duration = config.getDuration("osc.connect-timeout").toScala
@@ -18,7 +18,10 @@ class IngestingActor extends Actor {
   val requestMethod: String = "GET"
 
   override def receive: Receive = {
-    case _ => ingestData(url)
+    case IngestDataMessage =>
+      val ingestedData: String = ingestData(url)
+      transformingActor ! TransformDataToJSONMessage(ingestedData)
+    case _ => println("Unknown message. Did not start ingesting data. IngestingActor")
   }
 
   def ingestData(url: String, connectTimeout:  Duration = connectTimeout, readTimeout:  Duration = readTimeout, requestMethod: String = requestMethod): String =

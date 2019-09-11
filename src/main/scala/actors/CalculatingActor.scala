@@ -1,9 +1,17 @@
 package actors
 
-import akka.actor._
+import akka.actor.{Actor, ActorRef}
+import messages.{CalculateDataMessage, SendDataToKafkaMessage}
 
-class CalculatingActor extends Actor {
+class CalculatingActor(sendingKafkaActor: ActorRef) extends Actor {
   override def receive: Receive = {
-    case _ => println("Calculate")
+    case CalculateDataMessage(transformedData) =>
+      val calculatedData: String = calculateData(transformedData)
+      sendingKafkaActor ! SendDataToKafkaMessage(calculatedData)
+    case _ => println("Unknown message. Did not start calculating data. CalculatingActor.")
+  }
+
+  def calculateData(data: String): String = {
+    "There will be computing"
   }
 }
