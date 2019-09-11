@@ -14,7 +14,7 @@ class SupervisorActor extends Actor {
     case StartMessage => ingestingActor ! IngestDataMessage
     case CompleteWork =>
       println("Work is completed")
-      context.system.terminate()
+      ingestingActor ! IngestDataMessage
     case _ => println("Unknown message. Supervisor.")
   }
 }
