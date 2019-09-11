@@ -13,6 +13,7 @@ class TransformingActor(calculatingActor: ActorRef) extends Actor {
   }
 
   def transformDataToJSON(ingestedData: String): String = {
+    println(ingestedData)
     "There will be transformation"
   }
 }
