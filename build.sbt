@@ -16,8 +16,10 @@ lazy val root = (project in file("."))
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor" % "2.5.25",
-  "com.typesafe" % "config" % "1.3.4"
+  "com.typesafe" % "config" % "1.3.4",
   
-)
-  
+  "io.circe" %% "circe-core" % "0.12.1",
+  "io.circe" %% "circe-generic" % "0.12.1",
+  "io.circe" %% "circe-parser"% "0.12.1"
 
+)
