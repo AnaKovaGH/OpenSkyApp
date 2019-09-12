@@ -16,8 +16,10 @@ lazy val root = (project in file("."))
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor" % "2.5.25",
-  "com.typesafe" % "config" % "1.3.4"
-  
+  "com.typesafe" % "config" % "1.3.4",
+
+
+  "org.apache.kafka" % "kafka_2.12" % "2.3.0"
 )
   
 
