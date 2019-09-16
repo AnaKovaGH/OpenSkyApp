@@ -33,9 +33,10 @@ class IngestingActor(transformingActor: ActorRef) extends Actor {
       connection.setReadTimeout(readTimeout.toMillis.toInt)
       connection.setRequestMethod(requestMethod)
       val inputStream = connection.getInputStream
-      val content = io.Source.fromInputStream(inputStream).mkString
+      val content = scala.io.Source.fromInputStream(inputStream).mkString
       if (inputStream != null) inputStream.close()
       connection.disconnect()
+      println(content)
       content
     }
     catch {
