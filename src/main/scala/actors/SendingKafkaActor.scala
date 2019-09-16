@@ -33,7 +33,8 @@ class SendingKafkaActor() extends Actor {
     try {
       val record = new ProducerRecord[String, String](topic, data)
       producer.send(record)
-    }catch{
+    }
+    catch {
       case error:Exception => error.printStackTrace()
     }
     "Test sending"

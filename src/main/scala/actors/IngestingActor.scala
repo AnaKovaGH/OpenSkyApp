@@ -9,6 +9,9 @@ import scala.concurrent.duration.Duration
 import scala.jdk.DurationConverters.JavaDurationOps
 import scala.util.control.NonFatal
 
+import java.net.{URL, HttpURLConnection}
+import io.tmos.arm.ArmMethods._
+
 
 class IngestingActor(transformingActor: ActorRef) extends Actor {
   val config: Config = ConfigFactory.load("OpenSky.conf")
@@ -17,25 +20,22 @@ class IngestingActor(transformingActor: ActorRef) extends Actor {
   val readTimeout:  Duration = config.getDuration("osc.read-timeout").toScala
   val requestMethod: String = "GET"
 
+  val connection: HttpURLConnection = new URL(url).openConnection.asInstanceOf[HttpURLConnection]
+  connection.setConnectTimeout(connectTimeout.toMillis.toInt)
+  connection.setReadTimeout(readTimeout.toMillis.toInt)
+  connection.setRequestMethod(requestMethod)
+
   override def receive: Receive = {
     case IngestDataMessage =>
-      val ingestedData: String = ingestData(url)
+      val ingestedData: String = ingestData()
       transformingActor ! TransformDataToJSONMessage(ingestedData)
     case _ => println("Unknown message. Did not start ingesting data. IngestingActor")
   }
 
-  def ingestData(url: String, connectTimeout:  Duration = connectTimeout, readTimeout:  Duration = readTimeout, requestMethod: String = requestMethod): String =
-  {
+  def ingestData(): String = {
     try {
-      import java.net.{URL, HttpURLConnection}
-      val connection = new URL(url).openConnection.asInstanceOf[HttpURLConnection]
-      connection.setConnectTimeout(connectTimeout.toMillis.toInt)
-      connection.setReadTimeout(readTimeout.toMillis.toInt)
-      connection.setRequestMethod(requestMethod)
       val inputStream = connection.getInputStream
       val content = scala.io.Source.fromInputStream(inputStream).mkString
-      if (inputStream != null) inputStream.close()
-      connection.disconnect()
       println(content)
       content
     }
