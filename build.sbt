@@ -18,6 +18,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor" % "2.5.25",
   "com.typesafe" % "config" % "1.3.4",
   "org.apache.kafka" % "kafka_2.12" % "2.3.0",
+  "io.tmos" % "arm4s_2.12" % "1.1.0",
   "ch.qos.logback" % "logback-classic" % "1.2.3" % Runtime //SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 
 )

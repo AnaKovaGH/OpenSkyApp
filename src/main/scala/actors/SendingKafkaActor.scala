@@ -7,8 +7,20 @@ import java.util.Properties
 import com.typesafe.config.{Config, ConfigFactory}
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
 
+import io.tmos.arm.ArmMethods._
+
 
 class SendingKafkaActor() extends Actor {
+  val config: Config = ConfigFactory.load("OpenSky.conf").getConfig("kafkaconfig")
+  val props:Properties = new Properties()
+  props.put("bootstrap.servers", config.getString("bootstrap-servers"))
+  props.put("key.serializer", config.getString("key-serializer"))
+  props.put("value.serializer", config.getString("value-serializer"))
+  props.put("acks", config.getString("acks"))
+
+  val producer = new KafkaProducer[String, String](props)
+  manage(producer)
+
   override def receive: Receive = {
     case SendDataToKafkaMessage(calculatedData) =>
       sendDataToKafka(calculatedData)
@@ -17,23 +29,12 @@ class SendingKafkaActor() extends Actor {
   }
 
   def sendDataToKafka(data: String): String = {
-    val config: Config = ConfigFactory.load("OpenSky.conf").getConfig("kafkaconfig")
-
-    val props:Properties = new Properties()
-    props.put("bootstrap.servers", config.getString("bootstrap-servers"))
-    props.put("key.serializer", config.getString("key-serializer"))
-    props.put("value.serializer", config.getString("value-serializer"))
-    props.put("acks", config.getString("acks"))
-
-    val producer = new KafkaProducer[String, String](props)
-    val topic = "openskystates"
+    val topic = config.getString("topic")
     try {
       val record = new ProducerRecord[String, String](topic, data)
-      val metadata = producer.send(record)
+      producer.send(record)
     }catch{
       case error:Exception => error.printStackTrace()
-    }finally {
-      producer.close()
     }
     "Test sending"
   }
