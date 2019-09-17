@@ -1,7 +1,9 @@
 package main
 
-import actors.SupervisorActor
+
 import akka.actor.{ActorRef, ActorSystem, Props}
+
+import actors.SupervisorActor
 import messages.StartMessage
 
 

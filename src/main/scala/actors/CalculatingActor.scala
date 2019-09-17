@@ -1,7 +1,10 @@
 package actors
 
+
 import akka.actor.{Actor, ActorSelection}
+
 import messages.{CalculateDataMessage, SendDataToKafkaMessage}
+
 
 class CalculatingActor() extends Actor {
   val sendingKafkaActor: ActorSelection = context.actorSelection("/user/SupervisorActor/sendingKafkaActor")

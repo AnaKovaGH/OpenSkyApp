@@ -1,13 +1,13 @@
 package actors
 
-import akka.actor.Actor
-import messages.{CompleteWork, SendDataToKafkaMessage}
-import java.util.Properties
 
+import akka.actor.Actor
 import com.typesafe.config.{Config, ConfigFactory}
+import io.tmos.arm.ArmMethods.manage
+import java.util.Properties
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
 
-import io.tmos.arm.ArmMethods._
+import messages.{CompleteWork, SendDataToKafkaMessage}
 
 
 class SendingKafkaActor() extends Actor {
@@ -35,7 +35,7 @@ class SendingKafkaActor() extends Actor {
       producer.send(record)
     }
     catch {
-      case error:Exception => error.printStackTrace()
+      case error: Exception => error.printStackTrace()
     }
     "Test sending"
   }
