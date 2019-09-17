@@ -1,9 +1,14 @@
 package actors
 
-import akka.actor.{Actor, ActorRef}
+
+import akka.actor.{Actor, ActorSelection}
+
 import messages.{CalculateDataMessage, SendDataToKafkaMessage}
 
-class CalculatingActor(sendingKafkaActor: ActorRef) extends Actor {
+
+class CalculatingActor() extends Actor {
+  val sendingKafkaActor: ActorSelection = context.actorSelection("/user/SupervisorActor/sendingKafkaActor")
+
   override def receive: Receive = {
     case CalculateDataMessage(transformedData) =>
       val calculatedData: String = calculateData(transformedData)
