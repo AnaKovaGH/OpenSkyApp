@@ -23,7 +23,7 @@ class SendingKafkaActor() extends Actor {
 
   override def receive: Receive = {
     case SendDataToKafkaMessage(calculatedData) =>
-      sendDataToKafka(calculatedData)
+      sendDataToKafka("hi")//(calculatedData) !TEMPORARY!
       context.parent ! CompleteWork
     case _ => println("Unknown message. Did not start sending data. SendingKafkaActor.")
   }
