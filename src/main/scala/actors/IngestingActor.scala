@@ -1,7 +1,7 @@
 package actors
 
 
-import akka.actor.{Actor, ActorRef, ActorSelection}
+import akka.actor.{Actor, ActorSelection}
 import com.typesafe.config.{Config, ConfigFactory}
 import io.tmos.arm.ArmMethods.manage
 import org.apache.http.HttpEntity
