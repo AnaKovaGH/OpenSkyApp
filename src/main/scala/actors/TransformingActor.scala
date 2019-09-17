@@ -3,7 +3,10 @@ package actors
 
 import akka.actor.{Actor, ActorSelection}
 
-import messages.{CalculateDataMessage, TransformDataToJSONMessage}
+import io.circe._
+import io.circe.parser._
+
+import messages.{CalculateDataMessage, CompleteWork, TransformDataToJSONMessage}
 
 
 class TransformingActor() extends Actor {
@@ -11,12 +14,16 @@ class TransformingActor() extends Actor {
 
   override def receive: Receive = {
     case TransformDataToJSONMessage(ingestedData) =>
-      val transformedData: String = transformDataToJSON(ingestedData)
-      calculatingActor ! CalculateDataMessage(transformedData)
+      val transformedData: Json = transformDataToJSON(ingestedData)
+      if (transformedData == null)
+        context.parent ! CompleteWork
+      else
+        calculatingActor ! CalculateDataMessage(transformedData)
     case _ => println("Unknown message. Did not start transforming data. TransformingActor.")
   }
 
-  def transformDataToJSON(ingestedData: String): String = {
-    "There will be transformation"
+  def transformDataToJSON(ingestedData: String): Json = {
+    val jsonData = parse(ingestedData).getOrElse(Json.Null)
+    jsonData
   }
 }
