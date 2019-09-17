@@ -19,6 +19,7 @@ libraryDependencies ++= Seq(
   "com.typesafe" % "config" % "1.3.4",
   "org.apache.kafka" % "kafka_2.12" % "2.3.0",
   "io.tmos" % "arm4s_2.12" % "1.1.0",
+  "org.apache.httpcomponents" % "httpclient" % "4.5.9",
   "ch.qos.logback" % "logback-classic" % "1.2.3" % Runtime //SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
 
 )
