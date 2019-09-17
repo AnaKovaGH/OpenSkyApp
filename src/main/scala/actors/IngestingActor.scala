@@ -38,8 +38,7 @@ class IngestingActor(transformingActor: ActorRef) extends Actor {
 
   val httpClient: DefaultHttpClient = buildHttpClient()
   manage(httpClient)
-  val httpResponse: CloseableHttpResponse = httpClient.execute(new HttpGet(url))
-  val entity: HttpEntity = httpResponse.getEntity
+
 
   override def receive: Receive = {
     case IngestDataMessage =>
@@ -50,11 +49,14 @@ class IngestingActor(transformingActor: ActorRef) extends Actor {
 
   def ingestData(): String = {
     try {
+      val httpResponse: CloseableHttpResponse = httpClient.execute(new HttpGet(url))
+      val entity: HttpEntity = httpResponse.getEntity
       var content = ""
       if (entity != null) {
         val inputStream = entity.getContent
         manage(inputStream)
         content = scala.io.Source.fromInputStream(inputStream).mkString
+        
       }
       println(content)
       content
