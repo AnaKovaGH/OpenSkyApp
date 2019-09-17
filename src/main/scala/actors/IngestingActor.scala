@@ -2,19 +2,21 @@ package actors
 
 
 import akka.actor.{Actor, ActorRef}
-import com.typesafe.config.{Config, ConfigFactory}
-import messages.{IngestDataMessage, TransformDataToJSONMessage}
 
-import scala.concurrent.duration.Duration
-import scala.jdk.DurationConverters.JavaDurationOps
-import scala.util.control.NonFatal
+import com.typesafe.config.{Config, ConfigFactory}
 
 import io.tmos.arm.ArmMethods.manage
+
 import org.apache.http.HttpEntity
 import org.apache.http.client.methods.{CloseableHttpResponse, HttpGet}
 import org.apache.http.impl.client.DefaultHttpClient
 import org.apache.http.params.HttpConnectionParams
 
+import scala.concurrent.duration.Duration
+import scala.jdk.DurationConverters.JavaDurationOps
+import scala.util.control.NonFatal
+
+import messages.{IngestDataMessage, TransformDataToJSONMessage}
 
 
 class IngestingActor(transformingActor: ActorRef) extends Actor {
