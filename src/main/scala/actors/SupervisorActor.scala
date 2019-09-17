@@ -5,10 +5,10 @@ import messages.{CompleteWork, IngestDataMessage, StartMessage}
 
 
 class SupervisorActor extends Actor {
-  val sendingKafkaActor: ActorRef = context.actorOf(Props[SendingKafkaActor])
-  val calculatingActor: ActorRef = context.actorOf(Props(new CalculatingActor(sendingKafkaActor)), name = "calculatingActor")
-  val transformingActor: ActorRef = context.actorOf(Props(new TransformingActor(calculatingActor)), name = "transformingActor")
-  val ingestingActor: ActorRef = context.actorOf(Props(new IngestingActor(transformingActor)), name = "ingestingActor")
+  val sendingKafkaActor: ActorRef = context.actorOf(Props[SendingKafkaActor], name = "sendingKafkaActor")
+  val calculatingActor: ActorRef = context.actorOf(Props[CalculatingActor], name = "calculatingActor")
+  val transformingActor: ActorRef = context.actorOf(Props[TransformingActor], name = "transformingActor")
+  val ingestingActor: ActorRef = context.actorOf(Props[IngestingActor], name = "ingestingActor")
 
   override def receive: Receive = {
     case StartMessage => ingestingActor ! IngestDataMessage

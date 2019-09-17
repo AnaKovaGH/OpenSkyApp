@@ -1,10 +1,12 @@
 package actors
 
-import akka.actor.{Actor, ActorRef}
+import akka.actor.{Actor, ActorSelection}
 import messages.{CalculateDataMessage, TransformDataToJSONMessage}
 
 
-class TransformingActor(calculatingActor: ActorRef) extends Actor {
+class TransformingActor() extends Actor {
+  val calculatingActor: ActorSelection = context.actorSelection("/user/SupervisorActor/calculatingActor")
+
   override def receive: Receive = {
     case TransformDataToJSONMessage(ingestedData) =>
       val transformedData: String = transformDataToJSON(ingestedData)
