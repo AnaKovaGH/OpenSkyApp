@@ -2,11 +2,10 @@ package actors
 
 
 import akka.actor.{Actor, ActorSelection}
-import com.typesafe.config.{Config, ConfigFactory}
 import io.circe.{HCursor, Json}
-import messages.{CalculateDataMessage, SendDataToKafkaMessage}
-
 import scala.collection.mutable.ListBuffer
+
+import messages.{CalculateDataMessage, SendDataToKafkaMessage}
 
 
 class CalculatingActor() extends Actor {
@@ -16,12 +15,12 @@ class CalculatingActor() extends Actor {
   override def receive: Receive = {
     case CalculateDataMessage(transformedData) =>
       val data: (Json, List[Json]) = extractData(transformedData)
-
       val HighestAltitude: Double = findHighestAltitude(data._2)
       val HighestSpeed: Double = findHighestSpeed(data._2)
       //val CountOfAirplanes: Int = findCountOfAirplanes(data)
       //val results: String = wrapper(HighestAltitude, HighestSpeed, CountOfAirplanes) //!TEMPORARY!
       sendingKafkaActor ! SendDataToKafkaMessage(HighestAltitude.toString)//SendDataToKafkaMessage(results)
+
 
     case _ => println("Unknown message. Did not start calculating data. CalculatingActor.")
   }
