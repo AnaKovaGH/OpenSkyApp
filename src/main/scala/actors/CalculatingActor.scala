@@ -3,21 +3,21 @@ package actors
 
 import akka.actor.{Actor, ActorSelection}
 import io.circe.{HCursor, Json}
-import scala.collection.mutable.ListBuffer
+import com.typesafe.config.{Config, ConfigFactory}
 
+import scala.collection.mutable.ListBuffer
 import messages.{CalculateDataMessage, SendDataToKafkaMessage}
 
 
 class CalculatingActor() extends Actor {
   val sendingKafkaActor: ActorSelection = context.actorSelection("/user/SupervisorActor/sendingKafkaActor")
-  val ingestingActor: ActorSelection = context.actorSelection("/user/SupervisorActor/ingestingActor")
 
   override def receive: Receive = {
     case CalculateDataMessage(transformedData) =>
       val data: (Json, List[Json]) = extractData(transformedData)
       val HighestAltitude: Double = findHighestAltitude(data._2)
       val HighestSpeed: Double = findHighestSpeed(data._2)
-      //val CountOfAirplanes: Int = findCountOfAirplanes(data)
+      val CountOfAirplanes: Int = findCountOfAirplanes(data._2)
       //val results: String = wrapper(HighestAltitude, HighestSpeed, CountOfAirplanes) //!TEMPORARY!
       sendingKafkaActor ! SendDataToKafkaMessage(HighestAltitude.toString)//SendDataToKafkaMessage(results)
 
@@ -79,19 +79,20 @@ class CalculatingActor() extends Actor {
     }
   }
 
-  def findCountOfAirplanes(data: (Json, List[Json])): Int = {
-    //val config: Config = ConfigFactory.load("OpenSky.conf")
-    //val radius: String = config.getString("airportsconfig.radius")
-    //val airport1: List[Float] = config.getString("airportsconfig.airport1")
+  def findCountOfAirplanes(data: List[Json]): Int = {
+    val config: Config = ConfigFactory.load("OpenSky.conf")
 
-    //test parameters
-    val radius: Double = 12345.5
-    val airport1: List[Float] = List(49.842957f, 24.031111f) //lat, long
-    val airport2: List[Float] = List(50.411198f, 30.446634f)
+    val radius: Double = config.getDouble("airportsconfig.radius")
+    val airport1: List[Float] = config.getString("airportsconfig.airport1").split(", ").toList.map(_.toFloat)
+    val airport2: List[Float] = config.getString("airportsconfig.airport2").split(", ").toList.map(_.toFloat)
     val listOfAiports: List[List[Float]] = List(airport1, airport2)
 
-    val timestamp = data._1
-    val states= data._2
+    val states= data
+    val airplaneLongIndex: Int = 5
+    val airplaneLattIndex: Int = 6
+
+    var count: Int = 0
+    var buffer = Map[List[Float], Int]
 
     for( airport <- listOfAiports ){
       val lamin: Float = (airport.head - radius).toFloat
@@ -102,17 +103,17 @@ class CalculatingActor() extends Actor {
       for( item <- states ) {
         val cursor: HCursor = item.hcursor
         val list: List[Json] = cursor.values.get.toList
-        val longtitude: Float = list(5).toString.toFloat
-        val lattitude: Float = list(6).toString.toFloat
+        val longtitude: Float = list(airplaneLongIndex).toString.toFloat
+        val lattitude: Float = list(airplaneLattIndex).toString.toFloat
 
         if (longtitude <= lomin && longtitude >= lomax){
           if (lattitude <= lamin && lattitude >= lamax){
-            "add params to the url and send it to ingest actor or think how it can be done"
+            count += 1
           }
         }
       }
+      buffer += (airport -> count) //TODO: change type
     }
-    1//!TEMPORARY!
   }
 
   def wrapper(HighestAttitude: Int, HighestSpeed:Int, CountOfAirplanes:Int): String = {
