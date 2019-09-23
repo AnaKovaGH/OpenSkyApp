@@ -6,7 +6,6 @@ import io.circe.{HCursor, Json}
 import scala.util.Try
 import com.typesafe.config.{Config, ConfigFactory}
 
-import scala.collection.mutable.Map
 import messages.{CalculateDataMessage, SendDataToKafkaMessage}
 
 
@@ -47,11 +46,11 @@ class CalculatingActor() extends Actor {
       }
     }
 
-    def extractDouble (item: Json): List[String] = {
+    def extractStateList (item: Json): List[String] = {
       val cursor: HCursor = item.hcursor
-      val list = cursor.values.get.toList
-      val result = list.map(_.toString)
-      result
+      val listWithJsonValues = cursor.values.get.toList
+      val listWithStringValues = listWithJsonValues.map(_.toString)
+      listWithStringValues
     }
 
     def findHighestAltitude(data: Option[(Json, List[Json])]): Option[Double] = {
@@ -59,7 +58,10 @@ class CalculatingActor() extends Actor {
         data match {
           case Some(value) =>
             val states = value._2
-            val listOfAltitudes = states.map({item => val tmp = extractDouble(item); tmp(altitudeIndex)})
+            val listOfAltitudes = states.map({ item =>
+                                               val oneStateList = extractStateList(item)
+                                               oneStateList(altitudeIndex)
+            })
             val maxAltitude = listOfAltitudes.flatMap(item => Try(item.toDouble).toOption).max
             Some(maxAltitude)
           case _ => None
@@ -75,9 +77,12 @@ class CalculatingActor() extends Actor {
       data match {
         case Some(value) =>
           val states = value._2
-          val listOfAltitudes = states.map({item => val tmp = extractDouble(item); tmp(speedIndex)})
-          val maxAltitude = listOfAltitudes.flatMap(item => Try(item.toDouble).toOption).max
-          Some(maxAltitude)
+          val listOfSpeed = states.map({ item =>
+                                         val oneStateList = extractStateList(item)
+                                         oneStateList(speedIndex)
+          })
+          val maxSpeed = listOfSpeed.flatMap(item => Try(item.toDouble).toOption).max
+          Some(maxSpeed)
         case _ => None
       }
     }
@@ -86,16 +91,15 @@ class CalculatingActor() extends Actor {
     }
   }
 
-  def findBorders(data: List[Float]) = {
+  def findCoordinatesBorders(data: List[Float]): Map[String, Float] = {
     val radius: Double = config.getDouble("airportsconfig.radius")
-    var result = Map.empty[String, Float]
-
-    result += "lamin" -> (data.head - radius).toFloat
-    result += "lamax" -> (data.head + radius).toFloat
-    result += "lomin" -> (data.last - radius).toFloat
-    result += "lomax" -> (data.last + radius).toFloat
-
-    result
+    val mapWithCoordinatesBorders: Map[String, Float] = Map (
+                                                        "lamin" -> (data.head - radius).toFloat,
+                                                        "lamax" -> (data.head + radius).toFloat,
+                                                        "lomin" -> (data.last - radius).toFloat,
+                                                        "lomax" -> (data.last + radius).toFloat
+    )
+    mapWithCoordinatesBorders
   }
 
   def findCountOfAirplanes(data: Option[(Json, List[Json])]) = {
@@ -107,14 +111,19 @@ class CalculatingActor() extends Actor {
       data match {
         case Some(value) =>
           val states = value._2
-          val list = states.map({item => val tmp = extractDouble(item); (Try(tmp(airplaneLattitudeIndex).toDouble).toOption, Try(tmp(airplaneLongtitudeIndex).toDouble).toOption) })
+          val listOfAirplanesCoordinates = states.map({ item =>
+                                               val oneStateList = extractStateList(item)
+                                               (Try(oneStateList(airplaneLattitudeIndex).toDouble).toOption, Try(oneStateList(airplaneLongtitudeIndex).toDouble).toOption)
+          })
+          val listWithCoordinatesBorders = listOfAiports.map(findCoordinatesBorders)
+          
 
-          val tmp = listOfAiports.map(findBorders)
-
-          list.filter(item => item._1 == 1 && item._2 == 5)
 
           //list.filter(item => item._1 == 1 && item._2 == 5)
-
+          //        if (longtitude <= lomin && longtitude >= lomax){
+          //          if (lattitude <= lamin && lattitude >= lamax){
+          //            count += 1
+          //
 
         case _ => None
       }
