@@ -12,7 +12,6 @@ import org.apache.http.params.HttpConnectionParams
 import scala.concurrent.duration.Duration
 import scala.jdk.DurationConverters.JavaDurationOps
 import scala.util.control.NonFatal
-
 import messages.{IngestDataMessage, TransformDataToJSONMessage}
 
 
