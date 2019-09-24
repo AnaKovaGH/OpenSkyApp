@@ -31,60 +31,54 @@ class CalculatingActor() extends Actor {
     case _ => println("Unknown message. Did not start calculating data. CalculatingActor.")
   }
 
-    def extractData(data: Json): Option[(Json, List[Json])] = {
-      try {
-        val timestamp = data.findAllByKey("time").head
-        val cursor: HCursor = data.hcursor
-        val states = cursor.downField("states").values.map(_.toList)
-        states match {
-          case Some(value) => Some(timestamp, value)
-          case _ => None
-        }
-      }
-      catch {
-        case error: Exception => None
+  def extractData(data: Json): Option[(Json, List[Json])] = {
+    try {
+      val timestamp = data.findAllByKey("time").head
+      val cursor: HCursor = data.hcursor
+      val states = cursor.downField("states").values.map(_.toList)
+      states match {
+        case Some(value) => Some(timestamp, value)
+        case _ => None
       }
     }
+    catch {
+      case error: Exception => None
+    }
+  }
 
-    def extractStateList (item: Json): List[String] = {
-      val cursor: HCursor = item.hcursor
-      val listWithJsonValues = cursor.values.get.toList
-      val listWithStringValues = listWithJsonValues.map(_.toString)
-      listWithStringValues
-    }
+  def extractStateList (item: Json): List[String] = {
+    val cursor: HCursor = item.hcursor
+    val listWithJsonValues = cursor.values.get.toList
+    val listWithStringValues = listWithJsonValues.map(_.toString)
+    listWithStringValues
+  }
 
-    def findHighestAltitude(data: Option[(Json, List[Json])]): Option[Double] = {
-      try {
-        data match {
-          case Some(value) =>
-            val states = value._2
-            val listOfAltitudes = states.map({ item =>
-                                               val oneStateList = extractStateList(item)
-                                               oneStateList(altitudeIndex)
-            })
-            val maxAltitude = listOfAltitudes.flatMap(item => Try(item.toDouble).toOption).max
-            Some(maxAltitude)
-          case _ => None
-        }
-      }
-      catch {
-        case error: Exception => None
-      }
+  def findHighestAltitude(data: Option[(Json, List[Json])]): Option[Double] = {
+    try {
+      val values = data.getOrElse({ return None })
+      val states = values._2
+      val listOfAltitudes = states.map({ item =>
+        val oneStateList = extractStateList(item)
+        oneStateList(altitudeIndex)
+      })
+      val maxAltitude = listOfAltitudes.flatMap(item => Try(item.toDouble).toOption).max
+      Some(maxAltitude)
     }
+    catch {
+      case error: Exception => None
+    }
+  }
 
   def findHighestSpeed(data: Option[(Json, List[Json])]): Option[Double] = {
     try {
-      data match {
-        case Some(value) =>
-          val states = value._2
-          val listOfSpeed = states.map({ item =>
-                                         val oneStateList = extractStateList(item)
-                                         oneStateList(speedIndex)
-          })
-          val maxSpeed = listOfSpeed.flatMap(item => Try(item.toDouble).toOption).max
-          Some(maxSpeed)
-        case _ => None
-      }
+      val values = data.getOrElse({ return None })
+      val states = values._2
+      val listOfSpeed = states.map({ item =>
+        val oneStateList = extractStateList(item)
+        oneStateList(speedIndex)
+      })
+      val maxSpeed = listOfSpeed.flatMap(item => Try(item.toDouble).toOption).max
+      Some(maxSpeed)
     }
     catch {
       case error: Exception => None
@@ -94,92 +88,43 @@ class CalculatingActor() extends Actor {
   def findCoordinatesBorders(data: List[Float]): Map[String, Float] = {
     val radius: Double = config.getDouble("airportsconfig.radius")
     val mapWithCoordinatesBorders: Map[String, Float] = Map (
-                                                        "lamin" -> (data.head - radius).toFloat,
-                                                        "lamax" -> (data.head + radius).toFloat,
-                                                        "lomin" -> (data.last - radius).toFloat,
-                                                        "lomax" -> (data.last + radius).toFloat
+      "lamin" -> (data.head - radius).toFloat,
+      "lamax" -> (data.head + radius).toFloat,
+      "lomin" -> (data.last - radius).toFloat,
+      "lomax" -> (data.last + radius).toFloat
     )
     mapWithCoordinatesBorders
   }
 
-  def findCountOfAirplanes(data: Option[(Json, List[Json])]) = {
+  def findCountOfAirplanes(data: Option[(Json, List[Json])]): Option[Int] = {
     val airport1: List[Float] = config.getString("airportsconfig.airport1").split(", ").toList.map(_.toFloat)
     val airport2: List[Float] = config.getString("airportsconfig.airport2").split(", ").toList.map(_.toFloat)
     val listOfAiports: List[List[Float]] = List(airport1, airport2)
 
     try {
-      data match {
-        case Some(value) =>
-          val states = value._2
-          val listOfAirplanesCoordinates = states.map({ item =>
-                                               val oneStateList = extractStateList(item)
-                                               (Try(oneStateList(airplaneLattitudeIndex).toDouble).toOption, Try(oneStateList(airplaneLongtitudeIndex).toDouble).toOption)
-          })
-          val listWithCoordinatesBorders = listOfAiports.map(findCoordinatesBorders)
-          
+      val values = data.getOrElse({ return None })
+      val states = values._2
+      val listOfAirplanesCoordinates = states.map({ item =>
+        val oneStateList = extractStateList(item)
+        (Try(oneStateList(airplaneLattitudeIndex).toDouble).toOption, Try(oneStateList(airplaneLongtitudeIndex).toDouble).toOption)
+      })
+      val listWithCoordinatesBorders = listOfAiports.map(findCoordinatesBorders)
+      println(listWithCoordinatesBorders)
 
-
-          //list.filter(item => item._1 == 1 && item._2 == 5)
-          //        if (longtitude <= lomin && longtitude >= lomax){
-          //          if (lattitude <= lamin && lattitude >= lamax){
-          //            count += 1
-          //
-
-        case _ => None
+      val t = listOfAirplanesCoordinates.filter { //TEMPORARY
+        case (lattitude, longtitude) =>
+          lattitude.getOrElse(0.0) > 0 && lattitude.getOrElse(0.0) < 100000 && //TEMPORARY
+          longtitude.getOrElse(0.0) > 0 && longtitude.getOrElse(0.0) < 100000  //TEMPORARY
       }
+      //println(" all: " +listOfAirplanesCoordinates.length + " filtered: " + t.length)
+      Some(1)
     }
     catch {
       case error: Exception => None
     }
-    1
   }
-
 }
 
-
-
-
-
-
-
-//  def findCountOfAirplanes(data: List[Json]): Int = {
-//    val config: Config = ConfigFactory.load("OpenSky.conf")
-//
-//    val radius: Double = config.getDouble("airportsconfig.radius")
-//    val airport1: List[Float] = config.getString("airportsconfig.airport1").split(", ").toList.map(_.toFloat)
-//    val airport2: List[Float] = config.getString("airportsconfig.airport2").split(", ").toList.map(_.toFloat)
-//    val listOfAiports: List[List[Float]] = List(airport1, airport2)
-//
-//    val states= data
-//    val airplaneLongIndex: Int = 5
-//    val airplaneLattIndex: Int = 6
-//
-//    var count: Int = 0
-//    var buffer = Map[List[Float], Int]
-//
-//    for( airport <- listOfAiports ){
-//      val lamin: Float = (airport.head - radius).toFloat
-//      val lamax: Float = (airport.head + radius).toFloat
-//      val lomin: Float = (airport.last - radius).toFloat
-//      val lomax: Float = (airport.last + radius).toFloat
-//
-//      for( item <- states ) {
-//        val cursor: HCursor = item.hcursor
-//        val list: List[Json] = cursor.values.get.toList
-//        val longtitude: Float = list(airplaneLongIndex).toString.toFloat
-//        val lattitude: Float = list(airplaneLattIndex).toString.toFloat
-//
-//        if (longtitude <= lomin && longtitude >= lomax){
-//          if (lattitude <= lamin && lattitude >= lamax){
-//            count += 1
-//          }
-//        }
-//      }
-//     // buffer += (airport -> count)
-//    }
-//    1
-//  }
-//
 //  def wrapper(HighestAttitude: Int, HighestSpeed:Int, CountOfAirplanes:Int): String = {
 //    "Wrap all results for sending to Kafka" //!TEMPORARY!
 //  }
