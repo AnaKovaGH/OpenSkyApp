@@ -109,14 +109,12 @@ class CalculatingActor() extends Actor {
         (Try(oneStateList(airplaneLattitudeIndex).toDouble).toOption, Try(oneStateList(airplaneLongtitudeIndex).toDouble).toOption)
       })
       val listWithCoordinatesBorders = listOfAiports.map(findCoordinatesBorders)
-      println(listWithCoordinatesBorders)
 
       val t = listOfAirplanesCoordinates.filter { //TEMPORARY
         case (lattitude, longtitude) =>
           lattitude.getOrElse(0.0) > 0 && lattitude.getOrElse(0.0) < 100000 && //TEMPORARY
           longtitude.getOrElse(0.0) > 0 && longtitude.getOrElse(0.0) < 100000  //TEMPORARY
       }
-      //println(" all: " +listOfAirplanesCoordinates.length + " filtered: " + t.length)
       Some(1)
     }
     catch {

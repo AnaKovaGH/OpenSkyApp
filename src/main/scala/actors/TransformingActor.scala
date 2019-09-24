@@ -15,10 +15,12 @@ class TransformingActor() extends Actor {
   override def receive: Receive = {
     case TransformDataToJSONMessage(ingestedData) =>
       val transformedData: Json = transformDataToJSON(ingestedData)
-      if (transformedData == null)
+      if (transformedData == null) {
         context.parent ! CompleteWork
-      else
+      }
+      else {
         calculatingActor ! CalculateDataMessage(transformedData)
+      }
     case _ => println("Unknown message. Did not start transforming data. TransformingActor.")
   }
 
