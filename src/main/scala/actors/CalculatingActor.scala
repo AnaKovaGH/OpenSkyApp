@@ -103,7 +103,6 @@ class CalculatingActor() extends Actor {
 
   def findCountOfAirplanes(data: Option[(Json, List[Json])]): Option[Int] = {
     val airports = config.getConfigList("airportsconfig.airports").asScala.toList
-    val minMeasure = -300.0 //to move latt or long if it is null
 
     val listOfPlanesByAirport = airports.map{ airport =>
       val airportLatitude = airport.getString("lat").toDouble
@@ -114,27 +113,14 @@ class CalculatingActor() extends Actor {
         return None
       })._2.map({
         plane =>
-          var lat: Double = {
-            if (extractStateList(plane)(airplaneLongtitudeIndex) == "null") {
-              minMeasure //out of scope of latitudides (min lat == -180)
-            }
-            else {
-              extractStateList(plane)(airplaneLongtitudeIndex).toDouble
-            }
+          val lattitude = extractStateList(plane)(airplaneLongtitudeIndex)
+          val longtitude = extractStateList(plane)(airplaneLattitudeIndex)
+          if (lattitude != "null" && longtitude != "null") {
+            Map("lat" -> lattitude.toDouble, "long" -> longtitude.toDouble)
           }
-          var long: Double = {
-            if (extractStateList(plane)(airplaneLattitudeIndex) == "null") {
-              minMeasure //out of scope of longtitudes (min long == -90)
-            }
-            else {
-              extractStateList(plane)(airplaneLattitudeIndex).toDouble
-            }
-          }
-          Map("lat" -> lat, "long" -> long)
       })
-
-      planeStates.filter(
-        _ ("lat") >= airportLatitude - radius) //lamin
+      
+      planeStates.filter(_ ("lat") >= airportLatitude - radius) //lamin
         .filter(_ ("lat") <= airportLatitude + radius) //lamax
         .filter(_ ("long") >= airportLongtitude - radius) //lomin
         .filter(_ ("long") <= airportLongtitude + radius) //lomin
