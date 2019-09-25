@@ -116,7 +116,7 @@ class CalculatingActor() extends Actor {
         plane =>
           var lat: Double = {
             if (extractStateList(plane)(airplaneLongtitudeIndex) == "null") {
-              minMeasure//out of scope of latitudides (min lat == -180)
+              minMeasure //out of scope of latitudides (min lat == -180)
             }
             else {
               extractStateList(plane)(airplaneLongtitudeIndex).toDouble
