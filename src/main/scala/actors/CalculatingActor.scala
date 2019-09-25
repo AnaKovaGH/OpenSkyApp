@@ -2,9 +2,10 @@ package actors
 
 
 import akka.actor.{Actor, ActorSelection}
+import com.typesafe.config.{Config, ConfigFactory}
+import collection.JavaConverters._
 import io.circe.{HCursor, Json}
 import scala.util.Try
-import com.typesafe.config.{Config, ConfigFactory}
 
 import messages.{CalculateDataMessage, SendDataToKafkaMessage}
 
@@ -46,7 +47,7 @@ class CalculatingActor() extends Actor {
     }
   }
 
-  def extractStateList (item: Json): List[String] = {
+  def extractStateList(item: Json): List[String] = {
     val cursor: HCursor = item.hcursor
     val listWithJsonValues = cursor.values.get.toList
     val listWithStringValues = listWithJsonValues.map(_.toString)
@@ -55,7 +56,9 @@ class CalculatingActor() extends Actor {
 
   def findHighestAltitude(data: Option[(Json, List[Json])]): Option[Double] = {
     try {
-      val values = data.getOrElse({ return None })
+      val values = data.getOrElse({
+        return None
+      })
       val states = values._2
       val listOfAltitudes = states.map({ item =>
         val oneStateList = extractStateList(item)
@@ -71,7 +74,9 @@ class CalculatingActor() extends Actor {
 
   def findHighestSpeed(data: Option[(Json, List[Json])]): Option[Double] = {
     try {
-      val values = data.getOrElse({ return None })
+      val values = data.getOrElse({
+        return None
+      })
       val states = values._2
       val listOfSpeed = states.map({ item =>
         val oneStateList = extractStateList(item)
@@ -97,29 +102,47 @@ class CalculatingActor() extends Actor {
   }
 
   def findCountOfAirplanes(data: Option[(Json, List[Json])]): Option[Int] = {
-    val airport1: List[Float] = config.getString("airportsconfig.airport1").split(", ").toList.map(_.toFloat)
-    val airport2: List[Float] = config.getString("airportsconfig.airport2").split(", ").toList.map(_.toFloat)
-    val listOfAiports: List[List[Float]] = List(airport1, airport2)
+    val airports = config.getConfigList("airportsconfig.airports").asScala.toList
+    val minMeasure = -300.0 //to move latt or long if it is null
 
-    try {
-      val values = data.getOrElse({ return None })
-      val states = values._2
-      val listOfAirplanesCoordinates = states.map({ item =>
-        val oneStateList = extractStateList(item)
-        (Try(oneStateList(airplaneLattitudeIndex).toDouble).toOption, Try(oneStateList(airplaneLongtitudeIndex).toDouble).toOption)
+    val listOfPlanesByAirport = airports.map{ airport =>
+      val airportLatitude = airport.getString("lat").toDouble
+      val airportLongtitude = airport.getString("long").toDouble
+      val radius: Double = config.getDouble("airportsconfig.radius")
+
+      val planeStates = data.getOrElse({
+        return None
+      })._2.map({
+        plane =>
+          var lat: Double = {
+            if (extractStateList(plane)(airplaneLongtitudeIndex) == "null") {
+              minMeasure//out of scope of latitudides (min lat == -180)
+            }
+            else {
+              extractStateList(plane)(airplaneLongtitudeIndex).toDouble
+            }
+          }
+          var long: Double = {
+            if (extractStateList(plane)(airplaneLattitudeIndex) == "null") {
+              minMeasure //out of scope of longtitudes (min long == -90)
+            }
+            else {
+              extractStateList(plane)(airplaneLattitudeIndex).toDouble
+            }
+          }
+          Map("lat" -> lat, "long" -> long)
       })
-      val listWithCoordinatesBorders = listOfAiports.map(findCoordinatesBorders)
 
-      val t = listOfAirplanesCoordinates.filter { //TEMPORARY
-        case (lattitude, longtitude) =>
-          lattitude.getOrElse(0.0) > 0 && lattitude.getOrElse(0.0) < 100000 && //TEMPORARY
-          longtitude.getOrElse(0.0) > 0 && longtitude.getOrElse(0.0) < 100000  //TEMPORARY
-      }
-      Some(1)
+      planeStates.filter(
+        _ ("lat") >= airportLatitude - radius) //lamin
+        .filter(_ ("lat") <= airportLatitude + radius) //lamax
+        .filter(_ ("long") >= airportLongtitude - radius) //lomin
+        .filter(_ ("long") <= airportLongtitude + radius) //lomin
+        .size
     }
-    catch {
-      case error: Exception => None
-    }
+    val countOfAllAirplanes = listOfPlanesByAirport.sum
+    println(countOfAllAirplanes)
+    Some(countOfAllAirplanes)
   }
 }
 
