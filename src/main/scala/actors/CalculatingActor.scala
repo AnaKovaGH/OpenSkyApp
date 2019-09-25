@@ -104,6 +104,8 @@ class CalculatingActor() extends Actor {
   def findCountOfAirplanes(data: Option[(Json, List[Json])]): Option[Int] = {
     val airports = config.getConfigList("airportsconfig.airports").asScala.toList
 
+    val minMeasure = -300.0 //to move lattitude or longtitude if it is null
+
     val listOfPlanesByAirport = airports.map{ airport =>
       val airportLatitude = airport.getString("lat").toDouble
       val airportLongtitude = airport.getString("long").toDouble
@@ -118,8 +120,11 @@ class CalculatingActor() extends Actor {
           if (lattitude != "null" && longtitude != "null") {
             Map("lat" -> lattitude.toDouble, "long" -> longtitude.toDouble)
           }
+          else {
+            Map("lat" -> minMeasure, "long" -> minMeasure)
+          }
       })
-      
+
       planeStates.filter(_ ("lat") >= airportLatitude - radius) //lamin
         .filter(_ ("lat") <= airportLatitude + radius) //lamax
         .filter(_ ("long") >= airportLongtitude - radius) //lomin
