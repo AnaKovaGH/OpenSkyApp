@@ -25,8 +25,9 @@ class CalculatingActor() extends Actor {
       val extractedData = extractData(data)
       val highestAltitude = findHighestAltitude(extractedData)
       val highestSpeed = findHighestSpeed(extractedData)
-      val CountOfAirplanes = findCountOfAirplanes(extractedData)
-      //val results: String = wrapper(HighestAltitude, HighestSpeed, CountOfAirplanes) //!TEMPORARY!
+      val countOfAirplanes = findCountOfAirplanes(extractedData)
+      val results = wrapper(highestAltitude, highestSpeed, countOfAirplanes)
+
       sendingKafkaActor ! SendDataToKafkaMessage("test sending") //SendDataToKafkaMessage(results)
 
     case _ => println("Unknown message. Did not start calculating data. CalculatingActor.")
@@ -64,7 +65,7 @@ class CalculatingActor() extends Actor {
         val oneStateList = extractStateList(item)
         oneStateList(altitudeIndex)
       })
-      val maxAltitude = listOfAltitudes.flatMap(item => Try(item.toDouble).toOption).max
+      val maxAltitude: Double = listOfAltitudes.flatMap(item => Try(item.toDouble).toOption).max
       Some(maxAltitude)
     }
     catch {
@@ -82,7 +83,7 @@ class CalculatingActor() extends Actor {
         val oneStateList = extractStateList(item)
         oneStateList(speedIndex)
       })
-      val maxSpeed = listOfSpeed.flatMap(item => Try(item.toDouble).toOption).max
+      val maxSpeed: Double = listOfSpeed.flatMap(item => Try(item.toDouble).toOption).max
       Some(maxSpeed)
     }
     catch {
@@ -111,12 +112,12 @@ class CalculatingActor() extends Actor {
       val airportLongtitude = airport.getString("long").toDouble
       val radius: Double = config.getDouble("airportsconfig.radius")
 
-      val planeStates = data.getOrElse({
+      val planeStates: List[Map[String, Double]] = data.getOrElse({
         return None
       })._2.map({
         plane =>
-          val lattitude = extractStateList(plane)(airplaneLongtitudeIndex)
-          val longtitude = extractStateList(plane)(airplaneLattitudeIndex)
+          val lattitude: String = extractStateList(plane)(airplaneLongtitudeIndex)
+          val longtitude: String = extractStateList(plane)(airplaneLattitudeIndex)
           if (lattitude != "null" && longtitude != "null") {
             Map("lat" -> lattitude.toDouble, "long" -> longtitude.toDouble)
           }
@@ -131,13 +132,18 @@ class CalculatingActor() extends Actor {
         .filter(_ ("long") <= airportLongtitude + radius) //lomin
         .size
     }
-    val countOfAllAirplanes = listOfPlanesByAirport.sum
-    println(countOfAllAirplanes)
+    val countOfAllAirplanes: Int = listOfPlanesByAirport.sum
     Some(countOfAllAirplanes)
+  }
+
+  def wrapper(highestAttitude: Option[Double], highestSpeed: Option[Double], countOfAirplanes: Option[Int]) = {
+
+    val results = Map( ("highestAttitude", highestAttitude.getOrElse(0)),
+      ("highestSpeed", highestSpeed.getOrElse(0)),
+      ("countOfAirplanes", countOfAirplanes.getOrElse(0))
+    )
+    println(results)
+    "Wrap all results for sending to Kafka" //!TEMPORARY!
   }
 }
 
-//  def wrapper(HighestAttitude: Int, HighestSpeed:Int, CountOfAirplanes:Int): String = {
-//    "Wrap all results for sending to Kafka" //!TEMPORARY!
-//  }
-//}
