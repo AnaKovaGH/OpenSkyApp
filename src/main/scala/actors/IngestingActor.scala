@@ -4,6 +4,7 @@ package actors
 import akka.actor.{Actor, ActorSelection}
 import com.typesafe.config.{Config, ConfigFactory}
 import io.tmos.arm.ArmMethods.manage
+
 import org.apache.http.HttpEntity
 import org.apache.http.client.methods.{CloseableHttpResponse, HttpGet}
 import org.apache.http.impl.client.DefaultHttpClient
@@ -12,7 +13,8 @@ import org.apache.http.params.HttpConnectionParams
 import scala.concurrent.duration.Duration
 import scala.jdk.DurationConverters.JavaDurationOps
 import scala.util.control.NonFatal
-import messages.{IngestDataMessage, TransformDataToJSONMessage}
+
+import messages.{CompleteWork, IngestDataMessage, TransformDataToJSONMessage}
 
 
 class IngestingActor() extends Actor {
@@ -25,7 +27,7 @@ class IngestingActor() extends Actor {
   val socketTimeout:  Duration = config.getDuration("osc.socket-timeout").toScala
 
   def buildHttpClient(): DefaultHttpClient = {
-      val httpClient = new DefaultHttpClient
+      val httpClient: DefaultHttpClient = new DefaultHttpClient
       val httpParams = httpClient.getParams
       HttpConnectionParams.setConnectionTimeout(httpParams, connectTimeout.toMillis.toInt)
       HttpConnectionParams.setSoTimeout(httpParams, socketTimeout.toMillis.toInt)
@@ -39,12 +41,15 @@ class IngestingActor() extends Actor {
 
   override def receive: Receive = {
     case IngestDataMessage =>
-      val ingestedData: String = ingestData()
-      transformingActor ! TransformDataToJSONMessage(ingestedData)
+      val ingestedData: Option[String] = ingestData()
+      ingestedData match {
+        case Some(value) => transformingActor ! TransformDataToJSONMessage(value)
+        case None => context.parent ! CompleteWork
+      }
     case _ => println("Unknown message. Did not start ingesting data. IngestingActor")
   }
 
-  def ingestData(): String = {
+  def ingestData(): Option[String] = {
     try {
       val httpResponse: CloseableHttpResponse = httpClient.execute(new HttpGet(url))
       val entity: HttpEntity = httpResponse.getEntity
@@ -54,10 +59,12 @@ class IngestingActor() extends Actor {
         manage(inputStream)
         content = scala.io.Source.fromInputStream(inputStream).mkString
       }
-      content
+      Some(content)
     }
     catch {
-      case NonFatal(error) => error.printStackTrace().toString
+      case NonFatal(error) =>
+        error.printStackTrace()
+        None
     }
   }
 }

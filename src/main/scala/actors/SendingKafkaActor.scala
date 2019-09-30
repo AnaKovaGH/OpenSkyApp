@@ -6,9 +6,9 @@ import com.typesafe.config.{Config, ConfigFactory}
 import io.tmos.arm.ArmMethods.manage
 import java.util.Properties
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
+import scala.util.control.NonFatal
 
 import messages.{CompleteWork, SendDataToKafkaMessage}
-
 
 class SendingKafkaActor() extends Actor {
   val config: Config = ConfigFactory.load("OpenSky.conf").getConfig("kafkaconfig")
@@ -23,20 +23,22 @@ class SendingKafkaActor() extends Actor {
 
   override def receive: Receive = {
     case SendDataToKafkaMessage(calculatedData) =>
-      sendDataToKafka("hi")//(calculatedData) !TEMPORARY!
+      sendDataToKafka(calculatedData)
       context.parent ! CompleteWork
     case _ => println("Unknown message. Did not start sending data. SendingKafkaActor.")
   }
 
-  def sendDataToKafka(data: String): String = {
+  def sendDataToKafka(data: Map[String, Double]): Option[String]  = {
     val topic = config.getString("topic")
     try {
-      val record = new ProducerRecord[String, String](topic, data)
+      val record = new ProducerRecord[String, String](topic, data.toString)
       producer.send(record)
+      Some("Done!")
     }
     catch {
-      case error: Exception => error.printStackTrace()
+      case NonFatal(error) =>
+        error.printStackTrace()
+        None
     }
-    "Test sending"
   }
 }
