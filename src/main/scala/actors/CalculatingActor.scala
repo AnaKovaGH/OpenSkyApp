@@ -9,11 +9,12 @@ import io.circe.{HCursor, Json}
 import scala.util.Try
 import scala.util.control.NonFatal
 
-import messages.{CalculateDataMessage, SendDataToKafkaMessage}
+import messages.{CalculateDataMessage, SendCalculatedDataMessage}
 
 
 class CalculatingActor() extends Actor {
   val sendingKafkaActor: ActorSelection = context.actorSelection("/user/SupervisorActor/sendingKafkaActor")
+  val serverAPIActor: ActorSelection = context.actorSelection("/user/SupervisorActor/serverAPIActor")
 
   val config: Config = ConfigFactory.load("OpenSky.conf")
 
@@ -30,7 +31,8 @@ class CalculatingActor() extends Actor {
       val highestSpeed: Option[Double] = findHighestSpeed(extractedData)
       val countOfAirplanes: Option[Int] = findCountOfAirplanes(extractedData)
       val results: Map[String, Double] = wrapper(highestAltitude, highestSpeed, countOfAirplanes)
-      sendingKafkaActor ! SendDataToKafkaMessage(results)
+      sendingKafkaActor ! SendCalculatedDataMessage(results)
+      serverAPIActor ! SendCalculatedDataMessage(results)
 
     case _ => println("Unknown message. Did not start calculating data. CalculatingActor.")
   }

@@ -8,7 +8,7 @@ import java.util.Properties
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
 import scala.util.control.NonFatal
 
-import messages.{CompleteWork, SendDataToKafkaMessage}
+import messages.{CompleteWork, SendCalculatedDataMessage}
 
 class SendingKafkaActor() extends Actor {
   val config: Config = ConfigFactory.load("OpenSky.conf").getConfig("kafkaconfig")
@@ -22,7 +22,7 @@ class SendingKafkaActor() extends Actor {
   manage(producer)
 
   override def receive: Receive = {
-    case SendDataToKafkaMessage(calculatedData) =>
+    case SendCalculatedDataMessage(calculatedData) =>
       sendDataToKafka(calculatedData)
       context.parent ! CompleteWork
     case _ => println("Unknown message. Did not start sending data. SendingKafkaActor.")

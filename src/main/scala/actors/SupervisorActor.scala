@@ -11,6 +11,7 @@ class SupervisorActor extends Actor {
   val calculatingActor: ActorRef = context.actorOf(Props[CalculatingActor], name = "calculatingActor")
   val transformingActor: ActorRef = context.actorOf(Props[TransformingActor], name = "transformingActor")
   val ingestingActor: ActorRef = context.actorOf(Props[IngestingActor], name = "ingestingActor")
+  val serverAPIActor: ActorRef = context.actorOf(Props[ServerAPIActor], name = "serverAPIActor")
 
   override def receive: Receive = {
     case StartMessage => ingestingActor ! IngestDataMessage
