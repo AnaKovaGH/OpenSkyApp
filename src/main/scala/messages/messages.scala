@@ -9,3 +9,4 @@ case class TransformDataToJSONMessage(data: String)
 case class CalculateDataMessage(data: Json)
 case class SendCalculatedDataMessage(data: Map[String, Double])
 case object  CompleteWork
+case object  TestRest
