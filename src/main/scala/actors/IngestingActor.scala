@@ -14,7 +14,7 @@ import scala.concurrent.duration.Duration
 import scala.jdk.DurationConverters.JavaDurationOps
 import scala.util.control.NonFatal
 
-import messages.{CompleteWork, IngestDataMessage, TransformDataToJSONMessage}
+import messages.{CompleteWork, IngestDataFromDatasource, TransformDataToJSON}
 
 
 class IngestingActor() extends Actor {
@@ -40,10 +40,10 @@ class IngestingActor() extends Actor {
   manage(httpClient)
 
   override def receive: Receive = {
-    case IngestDataMessage =>
+    case IngestDataFromDatasource =>
       val ingestedData: Option[String] = ingestData()
       ingestedData match {
-        case Some(value) => transformingActor ! TransformDataToJSONMessage(value)
+        case Some(value) => transformingActor ! TransformDataToJSON(value)
         case None => context.parent ! CompleteWork
       }
     case _ => println("Unknown message. Did not start ingesting data. IngestingActor")

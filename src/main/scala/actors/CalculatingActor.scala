@@ -4,39 +4,40 @@ package actors
 import akka.actor.{Actor, ActorSelection}
 import com.typesafe.config.{Config, ConfigFactory}
 import collection.JavaConverters._
+
 import io.circe.{HCursor, Json}
+import io.circe.syntax._
 
 import scala.util.Try
 import scala.util.control.NonFatal
 
-import messages.{CalculateDataMessage, SendCalculatedDataMessage}
+import messages.{CalculateData, SendDataToKafka}
 
 
 class CalculatingActor() extends Actor {
-  val sendingKafkaActor: ActorSelection = context.actorSelection("/user/SupervisorActor/sendingKafkaActor")
+  val kafkaProducerActor: ActorSelection = context.actorSelection("/user/SupervisorActor/kafkaProducerActor")
 
   val config: Config = ConfigFactory.load("OpenSky.conf")
 
-  val defaultValue: Int = 0 //for null points, which are summed
+  val defaultValue: Int = 0 //default value for gerOrElse statements
   val altitudeIndex: Int = 7
   val speedIndex: Int = 9
   val airplaneLongtitudeIndex: Int = 5
   val airplaneLattitudeIndex: Int = 6
 
   override def receive: Receive = {
-    case CalculateDataMessage(data) =>
-      val extractedData: Option[(Json, List[Json])] = extractData(data)
+    case CalculateData(data) =>
+      val extractedData: Option[(Json, List[Json])] = parseJSONData(data)
       val highestAltitude: Option[Double] = findHighestAltitude(extractedData)
       val highestSpeed: Option[Double] = findHighestSpeed(extractedData)
-      val countOfAirplanes: Option[Int] = findCountOfAirplanes(extractedData)
-      val results: Map[String, Double] = wrapper(highestAltitude, highestSpeed, countOfAirplanes)
-      sendingKafkaActor ! SendCalculatedDataMessage(results)
-      context.parent ! SendCalculatedDataMessage(results)
+      val countOfAirplanes: Option[Int]  = findCountOfAirplanes(extractedData)
 
+      val results: Json = convertResultsToJson(highestAltitude, highestSpeed, countOfAirplanes)
+      kafkaProducerActor ! SendDataToKafka(results)
     case _ => println("Unknown message. Did not start calculating data. CalculatingActor.")
   }
 
-  def extractData(data: Json): Option[(Json, List[Json])] = {
+  def parseJSONData(data: Json): Option[(Json, List[Json])] = {
     try {
       val timestamp: Json = data.findAllByKey("time").head
       val cursor: HCursor = data.hcursor
@@ -53,7 +54,7 @@ class CalculatingActor() extends Actor {
     }
   }
 
-  def extractStateList(item: Json): List[String] = {
+  def parseStateList(item: Json): List[String] = {
     val cursor: HCursor = item.hcursor
     val listWithStringValues: List[String] = cursor.values.get.toList.map(_.toString)
     listWithStringValues
@@ -65,7 +66,7 @@ class CalculatingActor() extends Actor {
         case Some(value) =>
           val states: List[Json] = value._2
           val listOfAltitudes: List[String] = states.map({ item =>
-            extractStateList(item)(altitudeIndex)
+            parseStateList(item)(altitudeIndex)
           })
           val maxAltitude: Double = listOfAltitudes.flatMap(item => Try(item.toDouble).toOption).max
           Some(maxAltitude)
@@ -85,7 +86,7 @@ class CalculatingActor() extends Actor {
         case Some(value) =>
           val states: List[Json] = value._2
           val listOfSpeed: List[String] = states.map({ item =>
-            extractStateList(item)(speedIndex)
+            parseStateList(item)(speedIndex)
           })
           val maxSpeed: Double = listOfSpeed.flatMap(item => Try(item.toDouble).toOption).max
           Some(maxSpeed)
@@ -108,7 +109,7 @@ class CalculatingActor() extends Actor {
       val radius: Double = config.getDouble("airportsconfig.radius")
       data match {
         case Some(value) =>
-          val planeStates = value._2.map(extractStateList)
+          val planeStates = value._2.map(parseStateList)
             .filter(_(airplaneLongtitudeIndex) != "null")
             .filter(_(airplaneLattitudeIndex) != "null")
             .filter(_(airplaneLattitudeIndex).toDouble >= airportLatitude - radius) //lamin
@@ -124,11 +125,10 @@ class CalculatingActor() extends Actor {
     Some(countOfAllAirplanes)
   }
 
-  def wrapper(highestAttitude: Option[Double], highestSpeed: Option[Double], countOfAirplanes: Option[Int]): Map[String, Double] = {
-    Map("highestAttitude" -> highestAttitude.getOrElse(defaultValue),
-      "highestSpeed" -> highestSpeed.getOrElse(defaultValue),
+  def convertResultsToJson(highestAttitude: Option[Double], highestSpeed: Option[Double], countOfAirplanes: Option[Int]): Json = {
+    Map("highestAttitude" -> highestAttitude.getOrElse(defaultValue.toDouble),
+      "highestSpeed" -> highestSpeed.getOrElse(defaultValue.toDouble),
       "countOfAirplanes" -> countOfAirplanes.getOrElse(defaultValue).toDouble
-    )
+    ).asJson
   }
-
 }

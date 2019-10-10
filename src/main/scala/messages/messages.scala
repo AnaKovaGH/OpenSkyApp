@@ -1,12 +1,13 @@
 package messages
 
+
 import io.circe._
 
 
-case object StartMessage
-case object IngestDataMessage
-case class TransformDataToJSONMessage(data: String)
-case class CalculateDataMessage(data: Json)
-case class SendCalculatedDataMessage(data: Map[String, Double])
-case object  CompleteWork
-case object  TestRest
+case object StartWork
+case object IngestDataFromDatasource
+case class TransformDataToJSON(data: String)
+case class CalculateData(data: Json)
+case class SendDataToKafka(data: Json)
+case object CompleteWork
+case object GetDataFromKafka

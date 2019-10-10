@@ -3,16 +3,20 @@ package actors
 
 import akka.actor.Actor
 import com.typesafe.config.{Config, ConfigFactory}
+
 import io.tmos.arm.ArmMethods.manage
+import io.circe.Json
+
 import java.util.Properties
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
 import scala.util.control.NonFatal
 
-import messages.{CompleteWork, SendCalculatedDataMessage}
+import messages.{CompleteWork, SendDataToKafka}
 
-class SendingKafkaActor() extends Actor {
+
+class KafkaProducerActor() extends Actor {
   val config: Config = ConfigFactory.load("OpenSky.conf").getConfig("kafkaconfig")
-  val props:Properties = new Properties()
+  val props: Properties = new Properties()
   props.put("bootstrap.servers", config.getString("bootstrap-servers"))
   props.put("key.serializer", config.getString("key-serializer"))
   props.put("value.serializer", config.getString("value-serializer"))
@@ -22,18 +26,18 @@ class SendingKafkaActor() extends Actor {
   manage(producer)
 
   override def receive: Receive = {
-    case SendCalculatedDataMessage(calculatedData) =>
+    case SendDataToKafka(calculatedData) =>
       sendDataToKafka(calculatedData)
       context.parent ! CompleteWork
     case _ => println("Unknown message. Did not start sending data. SendingKafkaActor.")
   }
 
-  def sendDataToKafka(data: Map[String, Double]): Option[String]  = {
+  def sendDataToKafka(data: Json): Option[String]  = {
     val topic = config.getString("topic")
     try {
       val record = new ProducerRecord[String, String](topic, data.toString)
       producer.send(record)
-      Some("Done!")
+      Some("Done sending to Kafka!")
     }
     catch {
       case NonFatal(error) =>
