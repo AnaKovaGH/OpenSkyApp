@@ -11,3 +11,4 @@ case class CalculateData(data: Json)
 case class SendDataToKafka(data: Json)
 case object CompleteWork
 case object GetDataFromKafka
+case object UnknownMessage

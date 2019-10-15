@@ -1,20 +1,19 @@
 package actors
 
 
-import akka.actor.Actor
+import akka.actor.{Actor, ActorLogging}
 import com.typesafe.config.{Config, ConfigFactory}
 import io.tmos.arm.ArmMethods.manage
-
 import java.util
 import java.util.Properties
 
 import org.apache.kafka.clients.consumer.KafkaConsumer
+
 import scala.collection.JavaConverters._
+import messages.{CompleteWork, GetDataFromKafka, UnknownMessage}
 
-import messages.GetDataFromKafka
 
-
-class KafkaConsumerActor extends Actor {
+class KafkaConsumerActor extends Actor with ActorLogging {
   val config: Config = ConfigFactory.load("OpenSky.conf").getConfig("kafkaconfig")
   val props:Properties = new Properties()
   props.put("bootstrap.servers", config.getString("bootstrap-servers"))
@@ -27,7 +26,10 @@ class KafkaConsumerActor extends Actor {
 
   override def receive: Receive = {
     case GetDataFromKafka =>  sender() ! readMessages()
-    case _ => println("Unknown message. KafkaConsumer.")
+    case UnknownMessage => context.parent ! CompleteWork
+    case _ =>
+      log.info("Unknown message. KafkaConsumer.")
+      sender ! UnknownMessage
   }
 
   def readMessages(): List[String] = {

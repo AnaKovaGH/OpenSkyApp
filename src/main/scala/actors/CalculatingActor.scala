@@ -1,20 +1,19 @@
 package actors
 
 
-import akka.actor.{Actor, ActorSelection}
+import akka.actor.{Actor, ActorLogging, ActorSelection}
 import com.typesafe.config.{Config, ConfigFactory}
-import collection.JavaConverters._
 
+import collection.JavaConverters._
 import io.circe.{HCursor, Json}
 import io.circe.syntax._
 
 import scala.util.Try
 import scala.util.control.NonFatal
+import messages.{CalculateData, CompleteWork, SendDataToKafka, UnknownMessage}
 
-import messages.{CalculateData, SendDataToKafka}
 
-
-class CalculatingActor() extends Actor {
+class CalculatingActor() extends Actor with ActorLogging {
   val kafkaProducerActor: ActorSelection = context.actorSelection("/user/SupervisorActor/kafkaProducerActor")
 
   val config: Config = ConfigFactory.load("OpenSky.conf")
@@ -34,7 +33,10 @@ class CalculatingActor() extends Actor {
 
       val results: Json = convertResultsToJson(highestAltitude, highestSpeed, countOfAirplanes)
       kafkaProducerActor ! SendDataToKafka(results)
-    case _ => println("Unknown message. Did not start calculating data. CalculatingActor.")
+    case UnknownMessage => context.parent ! CompleteWork
+    case _ =>
+      log.info("Unknown message. Did not start calculating data. CalculatingActor.")
+      sender ! UnknownMessage
   }
 
   def parseJSONData(data: Json): Option[(Json, List[Json])] = {

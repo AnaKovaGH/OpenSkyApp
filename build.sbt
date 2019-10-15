@@ -23,10 +23,15 @@ libraryDependencies ++= Seq(
   "org.apache.kafka" % "kafka_2.12" % "2.3.0",
   "io.tmos" % "arm4s_2.12" % "1.1.0",
   "org.apache.httpcomponents" % "httpclient" % "4.5.9",
+  
   "ch.qos.logback" % "logback-classic" % "1.2.3" % Runtime, //SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+  "com.typesafe.scala-logging" % "scala-logging_2.12" % "3.9.2",
   
   "io.circe" %% "circe-core" % "0.12.1",
   "io.circe" %% "circe-generic" % "0.12.1",
-  "io.circe" %% "circe-parser"% "0.12.1"
+  "io.circe" %% "circe-parser"% "0.12.1",
+
+  "org.scalatest" % "scalatest_2.13" % "3.0.8" % "test",
+  "com.typesafe.akka" %% "akka-testkit" % "2.5.25" % Test
 
 )

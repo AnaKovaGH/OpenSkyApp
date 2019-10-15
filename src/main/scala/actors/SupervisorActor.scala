@@ -1,12 +1,11 @@
 package actors
 
 
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import messages.{CompleteWork, IngestDataFromDatasource, StartWork, UnknownMessage}
 
-import messages.{CompleteWork, IngestDataFromDatasource, StartWork}
 
-
-class SupervisorActor extends Actor {
+class SupervisorActor extends Actor with ActorLogging {
   val kafkaProducerActor: ActorRef = context.actorOf(Props[KafkaProducerActor], name = "kafkaProducerActor")
   val calculatingActor: ActorRef = context.actorOf(Props[CalculatingActor], name = "calculatingActor")
   val transformingActor: ActorRef = context.actorOf(Props[TransformingActor], name = "transformingActor")
@@ -15,8 +14,11 @@ class SupervisorActor extends Actor {
   override def receive: Receive = {
     case StartWork => ingestingActor ! IngestDataFromDatasource
     case CompleteWork =>
-      println("Work is completed")
+      log.info("Work is completed")
       ingestingActor ! IngestDataFromDatasource
-    case _ => println("Unknown message. Supervisor.")
+    case UnknownMessage => self ! CompleteWork
+    case _ =>
+      log.info("Unknown message. Supervisor.")
+      sender ! UnknownMessage
   }
 }

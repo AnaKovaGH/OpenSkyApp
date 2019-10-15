@@ -1,20 +1,19 @@
 package actors
 
 
-import akka.actor.Actor
+import akka.actor.{Actor, ActorLogging}
 import com.typesafe.config.{Config, ConfigFactory}
-
 import io.tmos.arm.ArmMethods.manage
 import io.circe.Json
-
 import java.util.Properties
+
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
+
 import scala.util.control.NonFatal
+import messages.{CompleteWork, SendDataToKafka, UnknownMessage}
 
-import messages.{CompleteWork, SendDataToKafka}
 
-
-class KafkaProducerActor() extends Actor {
+class KafkaProducerActor() extends Actor with ActorLogging {
   val config: Config = ConfigFactory.load("OpenSky.conf").getConfig("kafkaconfig")
   val props: Properties = new Properties()
   props.put("bootstrap.servers", config.getString("bootstrap-servers"))
@@ -29,7 +28,10 @@ class KafkaProducerActor() extends Actor {
     case SendDataToKafka(calculatedData) =>
       sendDataToKafka(calculatedData)
       context.parent ! CompleteWork
-    case _ => println("Unknown message. Did not start sending data. SendingKafkaActor.")
+    case UnknownMessage => context.parent ! CompleteWork
+    case _ =>
+      log.info("Unknown message. Did not start sending data. SendingKafkaActor.")
+      sender ! UnknownMessage
   }
 
   def sendDataToKafka(data: Json): Option[String]  = {

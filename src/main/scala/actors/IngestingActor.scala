@@ -1,10 +1,9 @@
 package actors
 
 
-import akka.actor.{Actor, ActorSelection}
+import akka.actor.{Actor, ActorLogging, ActorSelection}
 import com.typesafe.config.{Config, ConfigFactory}
 import io.tmos.arm.ArmMethods.manage
-
 import org.apache.http.HttpEntity
 import org.apache.http.client.methods.{CloseableHttpResponse, HttpGet}
 import org.apache.http.impl.client.DefaultHttpClient
@@ -13,11 +12,10 @@ import org.apache.http.params.HttpConnectionParams
 import scala.concurrent.duration.Duration
 import scala.jdk.DurationConverters.JavaDurationOps
 import scala.util.control.NonFatal
+import messages.{CompleteWork, IngestDataFromDatasource, TransformDataToJSON, UnknownMessage}
 
-import messages.{CompleteWork, IngestDataFromDatasource, TransformDataToJSON}
 
-
-class IngestingActor() extends Actor {
+class IngestingActor() extends Actor with ActorLogging {
   val transformingActor: ActorSelection = context.actorSelection("/user/SupervisorActor/transformingActor")
 
   val config: Config = ConfigFactory.load("OpenSky.conf")
@@ -46,7 +44,10 @@ class IngestingActor() extends Actor {
         case Some(value) => transformingActor ! TransformDataToJSON(value)
         case None => context.parent ! CompleteWork
       }
-    case _ => println("Unknown message. Did not start ingesting data. IngestingActor")
+    case UnknownMessage => context.parent ! CompleteWork
+    case _ =>
+      log.info("Unknown message. Did not start ingesting data. IngestingActor")
+      sender ! UnknownMessage
   }
 
   def ingestData(): Option[String] = {
