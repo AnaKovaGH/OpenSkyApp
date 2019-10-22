@@ -2,9 +2,11 @@ package actors
 
 
 import akka.actor.{Actor, ActorLogging, ActorSelection}
+
 import io.circe._
 import io.circe.parser._
-import messages.{CalculateData, CompleteWork, TransformDataToJSON, UnknownMessage}
+
+import messages.{CalculateData, CompleteWork, DataCalculated, DataTransformed, TransformDataToJSON, UnknownMessage}
 
 
 class TransformingActor() extends Actor with ActorLogging {
@@ -14,13 +16,16 @@ class TransformingActor() extends Actor with ActorLogging {
     case TransformDataToJSON(ingestedData) =>
       val transformedData: Option[Json] = transformDataToJSON(ingestedData)
       transformedData match {
-        case Some(value) => calculatingActor ! CalculateData(value)
+        case Some(value) =>
+          calculatingActor ! CalculateData(value)
+          sender() ! DataTransformed(value)
         case None => context.parent ! CompleteWork
       }
+    case DataCalculated(data) => log.info("Data calculated.")
     case UnknownMessage => context.parent ! CompleteWork
     case _ =>
       log.info("Unknown message. Did not start transforming data. TransformingActor.")
-      sender ! UnknownMessage
+      sender() ! UnknownMessage
   }
 
   def transformDataToJSON(ingestedData: String): Option[Json] = {

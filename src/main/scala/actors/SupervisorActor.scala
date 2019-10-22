@@ -2,7 +2,8 @@ package actors
 
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
-import messages.{CompleteWork, IngestDataFromDatasource, StartWork, UnknownMessage}
+
+import messages.{CompleteWork, DataIngested, IngestDataFromDatasource, StartWork, UnknownMessage, WorkCompleted, WorkStarted}
 
 
 class SupervisorActor extends Actor with ActorLogging {
@@ -12,13 +13,17 @@ class SupervisorActor extends Actor with ActorLogging {
   val ingestingActor: ActorRef = context.actorOf(Props[IngestingActor], name = "ingestingActor")
 
   override def receive: Receive = {
-    case StartWork => ingestingActor ! IngestDataFromDatasource
-    case CompleteWork =>
-      log.info("Work is completed")
+    case StartWork =>
       ingestingActor ! IngestDataFromDatasource
-    case UnknownMessage => self ! CompleteWork
+      sender() ! WorkStarted
+    case CompleteWork =>
+      sender() ! WorkCompleted
+      ingestingActor ! IngestDataFromDatasource
+    case DataIngested(data) => log.info("Data ingested.")
+    case UnknownMessage => ingestingActor ! IngestDataFromDatasource
     case _ =>
       log.info("Unknown message. Supervisor.")
-      sender ! UnknownMessage
+      context.parent ! CompleteWork
+      sender() ! UnknownMessage
   }
 }

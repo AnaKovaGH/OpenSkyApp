@@ -4,6 +4,7 @@ package actors
 import akka.actor.{Actor, ActorLogging, ActorSelection}
 import com.typesafe.config.{Config, ConfigFactory}
 import io.tmos.arm.ArmMethods.manage
+
 import org.apache.http.HttpEntity
 import org.apache.http.client.methods.{CloseableHttpResponse, HttpGet}
 import org.apache.http.impl.client.DefaultHttpClient
@@ -12,7 +13,8 @@ import org.apache.http.params.HttpConnectionParams
 import scala.concurrent.duration.Duration
 import scala.jdk.DurationConverters.JavaDurationOps
 import scala.util.control.NonFatal
-import messages.{CompleteWork, IngestDataFromDatasource, TransformDataToJSON, UnknownMessage}
+
+import messages.{CompleteWork, DataIngested, DataTransformed, IngestDataFromDatasource, TransformDataToJSON, UnknownMessage}
 
 
 class IngestingActor() extends Actor with ActorLogging {
@@ -41,13 +43,18 @@ class IngestingActor() extends Actor with ActorLogging {
     case IngestDataFromDatasource =>
       val ingestedData: Option[String] = ingestData()
       ingestedData match {
-        case Some(value) => transformingActor ! TransformDataToJSON(value)
-        case None => context.parent ! CompleteWork
+        case Some(value) =>
+          transformingActor ! TransformDataToJSON(value)
+          sender() ! DataIngested(value)
+        case None =>
+          log.info("Data was not ingested.")
+          context.parent ! CompleteWork
       }
+    case DataTransformed(data) => log.info("Data transformed.")
     case UnknownMessage => context.parent ! CompleteWork
     case _ =>
       log.info("Unknown message. Did not start ingesting data. IngestingActor")
-      sender ! UnknownMessage
+      sender() ! UnknownMessage
   }
 
   def ingestData(): Option[String] = {

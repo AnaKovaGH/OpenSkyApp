@@ -31,11 +31,10 @@ object  Main extends App {
 
   val supervisorActor: ActorRef = actorSystem.actorOf(Props[SupervisorActor], "SupervisorActor")
   supervisorActor ! StartWork
+
   val kafkaConsumerActor: ActorRef = actorSystem.actorOf(Props[KafkaConsumerActor], "KafkaConsumerActor")
-
-  val consumerAnswer = kafkaConsumerActor ? GetDataFromKafka
-  val dataFromKafka = Await.result(consumerAnswer, duration).toString
-
+  val consumerAnswer: Future[Any] = kafkaConsumerActor ? GetDataFromKafka
+  val dataFromKafka: String = Await.result(consumerAnswer, duration).toString
   val route = {
     get {
       complete(dataFromKafka)

@@ -3,14 +3,15 @@ package actors
 
 import akka.actor.{Actor, ActorLogging}
 import com.typesafe.config.{Config, ConfigFactory}
+
 import io.tmos.arm.ArmMethods.manage
 import io.circe.Json
+
 import java.util.Properties
-
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
-
 import scala.util.control.NonFatal
-import messages.{CompleteWork, SendDataToKafka, UnknownMessage}
+
+import messages.{CompleteWork, DataSent, SendDataToKafka, UnknownMessage, WorkCompleted}
 
 
 class KafkaProducerActor() extends Actor with ActorLogging {
@@ -27,11 +28,13 @@ class KafkaProducerActor() extends Actor with ActorLogging {
   override def receive: Receive = {
     case SendDataToKafka(calculatedData) =>
       sendDataToKafka(calculatedData)
+      sender() ! DataSent
       context.parent ! CompleteWork
+    case WorkCompleted => log.info("Work is completed.")
     case UnknownMessage => context.parent ! CompleteWork
     case _ =>
-      log.info("Unknown message. Did not start sending data. SendingKafkaActor.")
-      sender ! UnknownMessage
+      log.info("Unknown message. Did not start sending data. KafkaProducerActor.")
+      sender() ! UnknownMessage
   }
 
   def sendDataToKafka(data: Json): Option[String]  = {

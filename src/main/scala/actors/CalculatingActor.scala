@@ -3,14 +3,15 @@ package actors
 
 import akka.actor.{Actor, ActorLogging, ActorSelection}
 import com.typesafe.config.{Config, ConfigFactory}
-
 import collection.JavaConverters._
+
 import io.circe.{HCursor, Json}
 import io.circe.syntax._
 
 import scala.util.Try
 import scala.util.control.NonFatal
-import messages.{CalculateData, CompleteWork, SendDataToKafka, UnknownMessage}
+
+import messages.{CalculateData, CompleteWork, DataCalculated, DataSent, SendDataToKafka, UnknownMessage}
 
 
 class CalculatingActor() extends Actor with ActorLogging {
@@ -33,10 +34,12 @@ class CalculatingActor() extends Actor with ActorLogging {
 
       val results: Json = convertResultsToJson(highestAltitude, highestSpeed, countOfAirplanes)
       kafkaProducerActor ! SendDataToKafka(results)
+      sender() ! DataCalculated(results)
+    case DataSent => log.info("Data was sent to Kafka.")
     case UnknownMessage => context.parent ! CompleteWork
     case _ =>
       log.info("Unknown message. Did not start calculating data. CalculatingActor.")
-      sender ! UnknownMessage
+      sender() ! UnknownMessage
   }
 
   def parseJSONData(data: Json): Option[(Json, List[Json])] = {
