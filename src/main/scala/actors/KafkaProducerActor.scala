@@ -46,7 +46,7 @@ class KafkaProducerActor() extends Actor with ActorLogging {
     }
     catch {
       case NonFatal(error) =>
-        error.printStackTrace()
+        log.error(error.getMessage)
         None
     }
   }
