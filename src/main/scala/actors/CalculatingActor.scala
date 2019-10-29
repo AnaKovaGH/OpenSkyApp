@@ -114,13 +114,13 @@ class CalculatingActor() extends Actor with ActorLogging {
       val radius: Double = config.getDouble("airportsconfig.radius")
       data match {
         case Some(value) =>
-          val planeStates = value._2.map(parseStateList)
-            .filter(_(airplaneLongtitudeIndex) != "null")
-            .filter(_(airplaneLattitudeIndex) != "null")
-            .filter(_(airplaneLattitudeIndex).toDouble >= airportLatitude - radius) //lamin
-            .filter(_(airplaneLattitudeIndex).toDouble <= airportLatitude + radius) //lamax
-            .filter(_(airplaneLongtitudeIndex).toDouble >= airportLongtitude - radius) //lomin
-            .count(_(airplaneLongtitudeIndex).toDouble <= airportLongtitude + radius) //lomax
+          val planeStates = value._2.map(parseStateList).count(plane =>
+            plane(airplaneLongtitudeIndex) != "null" &&
+              plane(airplaneLattitudeIndex) != "null" &&
+              plane(airplaneLattitudeIndex).toDouble >= airportLatitude - radius &&
+              plane(airplaneLattitudeIndex).toDouble <= airportLatitude + radius &&
+              plane(airplaneLongtitudeIndex).toDouble >= airportLongtitude - radius &&
+              plane(airplaneLongtitudeIndex).toDouble <= airportLongtitude + radius)
           Some(planeStates)
         case _ => None
       }
