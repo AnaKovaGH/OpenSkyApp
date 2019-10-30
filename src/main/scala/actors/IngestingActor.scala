@@ -1,9 +1,10 @@
 package actors
 
 
-import akka.actor.{Actor, ActorSelection}
+import akka.actor.{Actor, ActorLogging, ActorSelection}
 import com.typesafe.config.{Config, ConfigFactory}
 import io.tmos.arm.ArmMethods.manage
+
 import org.apache.http.HttpEntity
 import org.apache.http.client.methods.{CloseableHttpResponse, HttpGet}
 import org.apache.http.impl.client.DefaultHttpClient
@@ -13,10 +14,10 @@ import scala.concurrent.duration.Duration
 import scala.jdk.DurationConverters.JavaDurationOps
 import scala.util.control.NonFatal
 
-import messages.{IngestDataMessage, TransformDataToJSONMessage}
+import messages.{CompleteWork, DataIngested, DataTransformed, IngestDataFromDatasource, TransformDataToJSON, UnknownMessage}
 
 
-class IngestingActor() extends Actor {
+class IngestingActor() extends Actor with ActorLogging {
   val transformingActor: ActorSelection = context.actorSelection("/user/SupervisorActor/transformingActor")
 
   val config: Config = ConfigFactory.load("OpenSky.conf")
@@ -26,7 +27,7 @@ class IngestingActor() extends Actor {
   val socketTimeout:  Duration = config.getDuration("osc.socket-timeout").toScala
 
   def buildHttpClient(): DefaultHttpClient = {
-      val httpClient = new DefaultHttpClient
+      val httpClient: DefaultHttpClient = new DefaultHttpClient
       val httpParams = httpClient.getParams
       HttpConnectionParams.setConnectionTimeout(httpParams, connectTimeout.toMillis.toInt)
       HttpConnectionParams.setSoTimeout(httpParams, socketTimeout.toMillis.toInt)
@@ -39,13 +40,24 @@ class IngestingActor() extends Actor {
   manage(httpClient)
 
   override def receive: Receive = {
-    case IngestDataMessage =>
-      val ingestedData: String = ingestData()
-      transformingActor ! TransformDataToJSONMessage(ingestedData)
-    case _ => println("Unknown message. Did not start ingesting data. IngestingActor")
+    case IngestDataFromDatasource =>
+      val ingestedData: Option[String] = ingestData()
+      ingestedData match {
+        case Some(value) =>
+          transformingActor ! TransformDataToJSON(value)
+          sender() ! DataIngested(value)
+        case None =>
+          log.info("Data was not ingested.")
+          context.parent ! CompleteWork
+      }
+    case DataTransformed(data) => log.info("Data transformed.")
+    case UnknownMessage => context.parent ! CompleteWork
+    case _ =>
+      log.info("Unknown message. Did not start ingesting data. IngestingActor")
+      sender() ! UnknownMessage
   }
 
-  def ingestData(): String = {
+  def ingestData(): Option[String] = {
     try {
       val httpResponse: CloseableHttpResponse = httpClient.execute(new HttpGet(url))
       val entity: HttpEntity = httpResponse.getEntity
@@ -55,10 +67,12 @@ class IngestingActor() extends Actor {
         manage(inputStream)
         content = scala.io.Source.fromInputStream(inputStream).mkString
       }
-      content
+      Some(content)
     }
     catch {
-      case NonFatal(error) => error.printStackTrace().toString
+      case NonFatal(error) =>
+        log.error(error.getMessage)
+        None
     }
   }
 }

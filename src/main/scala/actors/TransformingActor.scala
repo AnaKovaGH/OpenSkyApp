@@ -1,29 +1,38 @@
 package actors
 
 
-import akka.actor.{Actor, ActorSelection}
+import akka.actor.{Actor, ActorLogging, ActorSelection}
 
 import io.circe._
 import io.circe.parser._
 
-import messages.{CalculateDataMessage, CompleteWork, TransformDataToJSONMessage}
+import messages.{CalculateData, CompleteWork, DataCalculated, DataTransformed, TransformDataToJSON, UnknownMessage}
 
 
-class TransformingActor() extends Actor {
+class TransformingActor() extends Actor with ActorLogging {
   val calculatingActor: ActorSelection = context.actorSelection("/user/SupervisorActor/calculatingActor")
 
   override def receive: Receive = {
-    case TransformDataToJSONMessage(ingestedData) =>
-      val transformedData: Json = transformDataToJSON(ingestedData)
-      if (transformedData == null)
-        context.parent ! CompleteWork
-      else
-        calculatingActor ! CalculateDataMessage(transformedData)
-    case _ => println("Unknown message. Did not start transforming data. TransformingActor.")
+    case TransformDataToJSON(ingestedData) =>
+      val transformedData: Option[Json] = transformDataToJSON(ingestedData)
+      transformedData match {
+        case Some(value) =>
+          calculatingActor ! CalculateData(value)
+          sender() ! DataTransformed(value)
+        case None => context.parent ! CompleteWork
+      }
+    case DataCalculated(data) => log.info("Data calculated.")
+    case UnknownMessage => context.parent ! CompleteWork
+    case _ =>
+      log.info("Unknown message. Did not start transforming data. TransformingActor.")
+      sender() ! UnknownMessage
   }
 
-  def transformDataToJSON(ingestedData: String): Json = {
-    val jsonData = parse(ingestedData).getOrElse(Json.Null)
-    jsonData
+  def transformDataToJSON(ingestedData: String): Option[Json] = {
+    val jsonData: Either[ParsingFailure, Json] = parse(ingestedData)
+    jsonData match {
+      case Right(value) => Some(value)
+      case Left(value) => None
+    }
   }
 }
