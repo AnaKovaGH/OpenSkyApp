@@ -16,6 +16,10 @@ import messages.{CalculateData, CompleteWork, DataCalculated, DataSent, SendData
 
 object CalculatingActor {
   val defaultValue: Int = 0 //default value for gerOrElse statements
+  val altitudeIndex: Int = 7
+  val speedIndex: Int = 9
+  val airplaneLongtitudeIndex: Int = 5
+  val airplaneLattitudeIndex: Int = 6
 }
 
 
@@ -23,11 +27,6 @@ class CalculatingActor() extends Actor with ActorLogging {
   val kafkaProducerActor: ActorSelection = context.actorSelection("/user/SupervisorActor/kafkaProducerActor")
 
   val config: Config = ConfigFactory.load("OpenSky.conf")
-
-  val altitudeIndex: Int = 7
-  val speedIndex: Int = 9
-  val airplaneLongtitudeIndex: Int = 5
-  val airplaneLattitudeIndex: Int = 6
 
   override def receive: Receive = {
     case CalculateData(data) =>
@@ -75,7 +74,7 @@ class CalculatingActor() extends Actor with ActorLogging {
         case Some(value) =>
           val states: List[Json] = value._2
           val listOfAltitudes: List[String] = states.map({ item =>
-            parseStateList(item)(altitudeIndex)
+            parseStateList(item)(CalculatingActor.altitudeIndex)
           })
           val maxAltitude: Double = listOfAltitudes.flatMap(item => Try(item.toDouble).toOption).max
           Some(maxAltitude)
@@ -95,7 +94,7 @@ class CalculatingActor() extends Actor with ActorLogging {
         case Some(value) =>
           val states: List[Json] = value._2
           val listOfSpeed: List[String] = states.map({ item =>
-            parseStateList(item)(speedIndex)
+            parseStateList(item)(CalculatingActor.speedIndex)
           })
           val maxSpeed: Double = listOfSpeed.flatMap(item => Try(item.toDouble).toOption).max
           Some(maxSpeed)
@@ -119,12 +118,12 @@ class CalculatingActor() extends Actor with ActorLogging {
       data match {
         case Some(value) =>
           val planeStates = value._2.map(parseStateList).count(plane =>
-            plane(airplaneLongtitudeIndex) != "null" &&
-              plane(airplaneLattitudeIndex) != "null" &&
-              plane(airplaneLattitudeIndex).toDouble >= airportLatitude - radius &&
-              plane(airplaneLattitudeIndex).toDouble <= airportLatitude + radius &&
-              plane(airplaneLongtitudeIndex).toDouble >= airportLongtitude - radius &&
-              plane(airplaneLongtitudeIndex).toDouble <= airportLongtitude + radius)
+            plane(CalculatingActor.airplaneLongtitudeIndex) != "null" &&
+              plane(CalculatingActor.airplaneLattitudeIndex) != "null" &&
+              plane(CalculatingActor.airplaneLattitudeIndex).toDouble >= airportLatitude - radius &&
+              plane(CalculatingActor.airplaneLattitudeIndex).toDouble <= airportLatitude + radius &&
+              plane(CalculatingActor.airplaneLongtitudeIndex).toDouble >= airportLongtitude - radius &&
+              plane(CalculatingActor.airplaneLongtitudeIndex).toDouble <= airportLongtitude + radius)
           Some(planeStates)
         case _ => None
       }
