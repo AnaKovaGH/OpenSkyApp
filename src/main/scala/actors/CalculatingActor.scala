@@ -14,12 +14,16 @@ import scala.util.control.NonFatal
 import messages.{CalculateData, CompleteWork, DataCalculated, DataSent, SendDataToKafka, UnknownMessage}
 
 
+object CalculatingActor {
+  val defaultValue: Int = 0 //default value for gerOrElse statements
+}
+
+
 class CalculatingActor() extends Actor with ActorLogging {
   val kafkaProducerActor: ActorSelection = context.actorSelection("/user/SupervisorActor/kafkaProducerActor")
 
   val config: Config = ConfigFactory.load("OpenSky.conf")
 
-  val defaultValue: Int = 0 //default value for gerOrElse statements
   val altitudeIndex: Int = 7
   val speedIndex: Int = 9
   val airplaneLongtitudeIndex: Int = 5
@@ -126,14 +130,14 @@ class CalculatingActor() extends Actor with ActorLogging {
       }
     })
 
-    val countOfAllAirplanes: Int = listOfPlanesByAirport.map(_.getOrElse(defaultValue)).sum
+    val countOfAllAirplanes: Int = listOfPlanesByAirport.map(_.getOrElse(CalculatingActor.defaultValue)).sum
     Some(countOfAllAirplanes)
   }
 
   def convertResultsToJson(highestAttitude: Option[Double], highestSpeed: Option[Double], countOfAirplanes: Option[Int]): Json = {
-    Map("highestAttitude" -> highestAttitude.getOrElse(defaultValue.toDouble),
-      "highestSpeed" -> highestSpeed.getOrElse(defaultValue.toDouble),
-      "countOfAirplanes" -> countOfAirplanes.getOrElse(defaultValue).toDouble
+    Map("highestAttitude" -> highestAttitude.getOrElse(CalculatingActor.defaultValue.toDouble),
+      "highestSpeed" -> highestSpeed.getOrElse(CalculatingActor.defaultValue.toDouble),
+      "countOfAirplanes" -> countOfAirplanes.getOrElse(CalculatingActor.defaultValue).toDouble
     ).asJson
   }
 }

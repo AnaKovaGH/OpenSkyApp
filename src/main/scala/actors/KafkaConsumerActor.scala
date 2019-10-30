@@ -14,15 +14,18 @@ import scala.collection.JavaConverters._
 import messages.{CompleteWork, GetDataFromKafka, UnknownMessage}
 
 
-class KafkaConsumerActor extends Actor with ActorLogging {
+object  KafkaConsumerActor {
   val config: Config = ConfigFactory.load("OpenSky.conf").getConfig("kafkaconfig")
   val props:Properties = new Properties()
   props.put("bootstrap.servers", config.getString("bootstrap-servers"))
   props.put("key.deserializer", config.getString("key-deserializer"))
   props.put("value.deserializer", config.getString("value-deserializer"))
   props.put("group.id", config.getString("consumer-group"))
+}
 
-  val consumer: KafkaConsumer[String, String] = new KafkaConsumer[String, String](props)
+
+class KafkaConsumerActor extends Actor with ActorLogging {
+  val consumer: KafkaConsumer[String, String] = new KafkaConsumer[String, String](KafkaConsumerActor.props)
   manage(consumer)
 
   override def receive: Receive = {
@@ -35,9 +38,9 @@ class KafkaConsumerActor extends Actor with ActorLogging {
   }
 
   def readMessages(): List[String] = {
-    val topic: String = config.getString("topic")
+    val topic: String = KafkaConsumerActor.config.getString("topic")
     consumer.subscribe(util.Arrays.asList(topic))
-    val records: Iterable[ConsumerRecord[String, String]] = consumer.poll(config.getLong("poll-timeout")).asScala
+    val records: Iterable[ConsumerRecord[String, String]] = consumer.poll(KafkaConsumerActor.config.getLong("poll-timeout")).asScala
     records.toList.map(message => message.value().toString)
   }
 }
