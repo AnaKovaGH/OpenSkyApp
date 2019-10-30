@@ -5,6 +5,7 @@ import akka.actor.{Actor, ActorLogging}
 import com.typesafe.config.{Config, ConfigFactory}
 import io.tmos.arm.ArmMethods.manage
 
+import java.io.IOException
 import java.util
 import java.util.Properties
 
@@ -15,6 +16,8 @@ import messages.{CompleteWork, GetDataFromKafka, UnknownMessage}
 
 
 object  KafkaConsumerActor {
+  val errorMessage = "An IOException occurs!"
+
   val config: Config = ConfigFactory.load("OpenSky.conf").getConfig("kafkaconfig")
   val props:Properties = new Properties()
   props.put("bootstrap.servers", config.getString("bootstrap-servers"))
@@ -30,17 +33,28 @@ class KafkaConsumerActor extends Actor with ActorLogging {
 
   override def receive: Receive = {
     case GetDataFromKafka =>
-      sender() ! readMessages()
+      val messages: Option[List[String]] = readMessages()
+      messages match {
+        case Some(value) => sender() ! value
+        case None => sender() ! KafkaConsumerActor.errorMessage
+      }
     case UnknownMessage => context.parent ! CompleteWork
     case _ =>
       log.info("Unknown message. KafkaConsumer.")
       sender() ! UnknownMessage
   }
 
-  def readMessages(): List[String] = {
-    val topic: String = KafkaConsumerActor.config.getString("topic")
-    consumer.subscribe(util.Arrays.asList(topic))
-    val records: Iterable[ConsumerRecord[String, String]] = consumer.poll(KafkaConsumerActor.config.getLong("poll-timeout")).asScala
-    records.toList.map(message => message.value().toString)
+  def readMessages(): Option[List[String]] = {
+    try {
+      val topic: String = KafkaConsumerActor.config.getString("topic")
+      consumer.subscribe(util.Arrays.asList(topic))
+      val records: Iterable[ConsumerRecord[String, String]] = consumer.poll(KafkaConsumerActor.config.getLong("poll-timeout")).asScala
+      Some(records.toList.map(message => message.value().toString))
+    }
+    catch {
+      case error: IOException =>
+        log.error(error.getMessage)
+        None
+    }
   }
 }
